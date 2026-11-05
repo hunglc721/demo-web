@@ -30,7 +30,7 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
 
   const { mode, toggleMode } = useThemeStore();
   const { getTotalItems, openCart } = useCartStore();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
 
   const cartCount = getTotalItems();
@@ -279,7 +279,7 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
                   <span>Admin</span>
                 </Link>
               )}
-              {!isAuthenticated && (
+              {user?.role !== 'admin' && (
                 <Link
                   to="/login"
                   className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-theme text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
@@ -348,7 +348,7 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
                   <span>Trang quản trị Admin</span>
                 </Link>
               )}
-              {!isAuthenticated && (
+              {user?.role !== 'admin' && (
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}

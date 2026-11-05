@@ -50,7 +50,7 @@ export const StorefrontLayout: React.FC = () => {
 
   const { mode, toggleMode, preset, setPreset } = useThemeStore();
   const { getTotalItems, openCart } = useCartStore();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
 
   const cartCount = getTotalItems();
@@ -383,7 +383,7 @@ export const StorefrontLayout: React.FC = () => {
                 </Link>
               )}
 
-              {!isAuthenticated && (
+              {user?.role !== 'admin' && (
                 <Link
                   to="/login"
                   className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-theme text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
@@ -453,7 +453,7 @@ export const StorefrontLayout: React.FC = () => {
                   <span>Trang quản trị Admin</span>
                 </Link>
               )}
-              {!isAuthenticated && (
+              {user?.role !== 'admin' && (
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
