@@ -2,13 +2,14 @@
  * Product & Catalog Domain Service Implementation
  */
 
-import {
+import type {
   IProductService,
   ProductQueryParams,
   CreateProductDTO,
   UpdateProductDTO,
 } from '../contracts/IProductService';
-import { Product, Category, PaginatedResponse } from '@/types';
+import type { Product, Category } from '@/types/product';
+import type { PaginatedResponse } from '@/types/dal';
 import { LocalStorageRepository } from '../mock/LocalStorageRepository';
 import { STORAGE_KEYS } from '../storage/storageKeys';
 import { seedProducts } from '../seed/productsSeed';

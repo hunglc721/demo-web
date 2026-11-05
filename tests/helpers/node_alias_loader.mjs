@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT_DIR = path.resolve(import.meta.dirname, '..', '..');
 
@@ -16,6 +16,20 @@ export async function resolve(specifier, context, nextResolve) {
       path.join(ROOT_DIR, 'src', subpath, 'index.ts'),
       path.join(ROOT_DIR, 'src', subpath, 'index.tsx'),
     ];
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        return nextResolve(pathToFileURL(candidate).href, context);
+      }
+    }
+  }
+
+  if (specifier.startsWith('.') && context.parentURL?.startsWith('file:')) {
+    const parentDir = path.dirname(fileURLToPath(context.parentURL));
+    const basePath = path.resolve(parentDir, specifier);
+    const candidates = path.extname(basePath)
+      ? [basePath]
+      : [basePath, ...['.ts', '.tsx', '.js', '.mjs'].map((extension) => basePath + extension), ...['index.ts', 'index.tsx'].map((name) => path.join(basePath, name))];
 
     for (const candidate of candidates) {
       if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {

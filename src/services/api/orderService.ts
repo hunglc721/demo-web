@@ -2,12 +2,13 @@
  * Order Domain Service Implementation
  */
 
-import {
+import type {
   IOrderService,
   OrderQueryParams,
   CreateOrderDTO,
 } from '../contracts/IOrderService';
-import { Order, OrderStatus, PaymentStatus, PaginatedResponse, OrderTimelineEvent } from '@/types';
+import type { Order, OrderStatus, PaymentStatus, OrderTimelineEvent } from '@/types/order';
+import type { PaginatedResponse } from '@/types/dal';
 import { LocalStorageRepository } from '../mock/LocalStorageRepository';
 import { STORAGE_KEYS } from '../storage/storageKeys';
 import { seedOrders } from '../seed/ordersSeed';
@@ -43,7 +44,7 @@ export class OrderService implements IOrderService {
   public async createOrder(data: CreateOrderDTO): Promise<Order> {
     const now = new Date().toISOString();
     const randomSuffix = Math.floor(100 + Math.random() * 900);
-    const orderNumber = data.orderNumber || `ORD-2026-${randomSuffix}`;
+    const orderNumber = data.orderNumber || `ORD-${new Date().getFullYear()}-${Date.now().toString().slice(-7)}${randomSuffix}`;
     const id = data.id || orderNumber;
 
     const initialTimeline: OrderTimelineEvent[] = [

@@ -3,7 +3,7 @@
  * Prevents browser crashes on 5MB quota exhaustion.
  */
 
-import { StorageItemReport, StorageUsageReport } from '../contracts/ISystemService';
+import type { StorageItemReport, StorageUsageReport } from '../contracts/ISystemService';
 
 export function formatByteSize(bytes: number): string {
   if (bytes <= 0) return '0 B';

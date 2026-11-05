@@ -120,6 +120,8 @@ export const ProductDetailPage: React.FC = () => {
       originalPrice: effectiveCompareAtPrice,
       quantity,
       image: selectedVariant?.image || product.images[0] || '',
+      sku: effectiveSku,
+      stock: effectiveStock,
     });
 
     toast.success(`Đã thêm ${quantity}x "${product.name}" vào giỏ hàng!`);
@@ -138,6 +140,8 @@ export const ProductDetailPage: React.FC = () => {
       originalPrice: effectiveCompareAtPrice,
       quantity,
       image: selectedVariant?.image || product.images[0] || '',
+      sku: effectiveSku,
+      stock: effectiveStock,
     });
 
     navigate('/checkout');

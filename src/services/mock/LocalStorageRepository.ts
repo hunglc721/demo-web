@@ -4,7 +4,8 @@
  * mock latency, chaos error injection, and QuotaGuard persistence.
  */
 
-import { IRepository, BaseFilter, PaginatedResponse, DalApiError } from '@/types/dal';
+import { DalApiError } from '@/types/dal';
+import type { IRepository, BaseFilter, PaginatedResponse } from '@/types/dal';
 import { mockEngine } from './mockEngine';
 import { safeSetStorageItem } from '../storage/quotaGuard';
 import { applyQueryPipeline, filterItems, sortItems } from '../queryEngine';

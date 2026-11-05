@@ -1,4 +1,4 @@
-import { Order } from '@/types/order';
+import type { Order } from '@/types/order';
 
 export const seedOrders: Order[] = [
   // 1. Pending (Chờ xác nhận)

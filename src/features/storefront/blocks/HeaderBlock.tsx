@@ -27,7 +27,7 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const { mode, toggleMode } = useThemeStore();
-  const { getTotalItems } = useCartStore();
+  const { getTotalItems, openCart } = useCartStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -233,8 +233,9 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
               </Link>
 
               {/* Cart Button with live Badge */}
-              <Link
-                to="/cart"
+              <button
+                type="button"
+                onClick={openCart}
                 className="relative p-2 rounded-theme bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center justify-center"
                 title="Giỏ hàng"
               >
@@ -244,7 +245,7 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
                     {cartCount > 99 ? '99+' : cartCount}
                   </span>
                 )}
-              </Link>
+              </button>
             </div>
           </div>
         </div>

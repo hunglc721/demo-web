@@ -1,4 +1,4 @@
-import { Coupon, CouponValidationResult } from '@/types/coupon';
+import type { Coupon, CouponValidationResult } from '@/types/coupon';
 
 export const seedCoupons: Coupon[] = [
   {

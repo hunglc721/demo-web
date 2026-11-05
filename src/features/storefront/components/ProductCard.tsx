@@ -49,16 +49,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
 
-    const firstVariant = product.variants?.[0];
+    const firstVariant = product.variants?.find((variant) => variant.stock > 0);
     addItem({
       productId: product.id,
       variantId: firstVariant?.id,
       title: product.name,
       variantName: firstVariant?.title,
-      price: product.price,
-      originalPrice: originalPrice,
+      price: firstVariant?.price ?? product.price,
+      originalPrice: firstVariant?.compareAtPrice ?? firstVariant?.originalPrice ?? originalPrice,
       quantity: 1,
       image: firstVariant?.image || product.images?.[0] || FALLBACK_IMAGE,
+      sku: firstVariant?.sku ?? product.sku,
+      stock: firstVariant?.stock ?? product.stock,
     });
 
     toast.success(`Đã thêm "${product.name}" vào giỏ hàng`);

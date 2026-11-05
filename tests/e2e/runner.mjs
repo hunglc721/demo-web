@@ -16,7 +16,8 @@ const ROOT_DIR = path.resolve(__dirname, '..', '..');
 
 // Auto-bootstrap Node with --experimental-strip-types to natively import TS files
 if (!process.execArgv.includes('--experimental-strip-types') && !process.env.RUNNER_BOOTSTRAPPED) {
-  const child = spawnSync(process.execPath, ['--experimental-strip-types', ...process.execArgv, ...process.argv.slice(1)], {
+  const loaderUrl = pathToFileURL(path.join(__dirname, '..', 'helpers', 'register_node_alias_loader.mjs')).href;
+  const child = spawnSync(process.execPath, ['--experimental-strip-types', '--import', loaderUrl, ...process.execArgv, ...process.argv.slice(1)], {
     stdio: 'inherit',
     env: { ...process.env, RUNNER_BOOTSTRAPPED: '1' }
   });

@@ -3,7 +3,7 @@
  * Provides multi-faceted filtering, Vietnamese locale-aware sorting, and boundary-clamped pagination.
  */
 
-import { PaginatedResponse } from '@/types/dal';
+import type { PaginatedResponse } from '@/types/dal';
 import {
   tokenizeQuery,
   matchesVietnameseSearch,

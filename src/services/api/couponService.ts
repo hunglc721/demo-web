@@ -2,13 +2,14 @@
  * Coupon & Promotion Domain Service Implementation
  */
 
-import {
+import type {
   ICouponService,
   CouponQueryParams,
   CreateCouponDTO,
   UpdateCouponDTO,
 } from '../contracts/ICouponService';
-import { Coupon, CouponValidationResult, PaginatedResponse } from '@/types';
+import type { Coupon, CouponValidationResult } from '@/types/coupon';
+import type { PaginatedResponse } from '@/types/dal';
 import { LocalStorageRepository } from '../mock/LocalStorageRepository';
 import { STORAGE_KEYS } from '../storage/storageKeys';
 import { seedCoupons, calculateCouponDiscount } from '../seed/couponsSeed';

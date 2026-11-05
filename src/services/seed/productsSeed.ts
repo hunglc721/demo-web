@@ -1,4 +1,4 @@
-import { Product } from '@/types/product';
+import type { Product } from '@/types/product';
 
 export const seedProducts: Product[] = [
   // 1. Thời Trang Nam (6 items)

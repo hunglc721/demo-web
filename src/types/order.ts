@@ -34,7 +34,7 @@ export interface CustomerAddress {
   phone: string;
   street: string;
   ward: string;
-  district: string;
+  district?: string;
   province: string;
   fullAddress: string;
 }

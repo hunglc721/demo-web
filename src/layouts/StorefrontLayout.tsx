@@ -22,6 +22,7 @@ import { defaultAppConfig, type ThemePreset } from '@/config/appConfig';
 import { useThemeStore } from '@/stores/themeStore';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
+import { CartDrawer } from '@/features/cart/components/CartDrawer';
 
 const presetOptions: Array<{ id: ThemePreset; name: string; colorClass: string }> = [
   { id: 'emerald', name: 'Ngọc lục bảo', colorClass: 'bg-emerald-500' },
@@ -37,7 +38,7 @@ export const StorefrontLayout: React.FC = () => {
   const [showPresetPicker, setShowPresetPicker] = useState(false);
 
   const { mode, toggleMode, preset, setPreset } = useThemeStore();
-  const { getTotalItems } = useCartStore();
+  const { getTotalItems, openCart } = useCartStore();
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
@@ -176,8 +177,9 @@ export const StorefrontLayout: React.FC = () => {
               </Link>
 
               {/* Cart Button with live Badge */}
-              <Link
-                to="/cart"
+              <button
+                type="button"
+                onClick={openCart}
                 className="relative p-2 rounded-theme bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center justify-center"
                 title="Giỏ hàng"
               >
@@ -187,7 +189,7 @@ export const StorefrontLayout: React.FC = () => {
                     {cartCount > 99 ? '99+' : cartCount}
                   </span>
                 )}
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -241,6 +243,8 @@ export const StorefrontLayout: React.FC = () => {
       <main className="flex-1">
         <Outlet />
       </main>
+
+      <CartDrawer />
 
       {/* 4. Responsive Footer */}
       <footer className="bg-surface-card border-t border-border-base mt-16 transition-colors">
