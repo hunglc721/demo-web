@@ -24,7 +24,9 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
 
   const { mode, toggleMode } = useThemeStore();
   const { getTotalItems, openCart } = useCartStore();
@@ -36,6 +38,10 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
   const announcementText =
     settings?.announcementText ||
     'Ưu đãi khai trương: Miễn phí vận chuyển toàn quốc cho đơn từ 299.000₫ & Tặng mã giảm 15%';
+
+  useEffect(() => {
+    if (isSearchExpanded) desktopSearchInputRef.current?.focus();
+  }, [isSearchExpanded]);
 
   // Live search debounce
   useEffect(() => {
@@ -71,6 +77,7 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
         !searchContainerRef.current.contains(e.target as Node)
       ) {
         setShowDropdown(false);
+        setIsSearchExpanded(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -81,6 +88,7 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       setShowDropdown(false);
+      setIsSearchExpanded(false);
       navigate(`/catalog?q=${encodeURIComponent(searchQuery.trim())}`);
       setMobileMenuOpen(false);
     }
@@ -144,24 +152,62 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
             </nav>
 
             {/* Search Input Bar with Live Dropdown (Desktop) */}
-            <div ref={searchContainerRef} className="hidden md:block relative flex-1 max-w-sm">
-              <form onSubmit={handleSearchSubmit} className="relative">
-                <input
-                  type="text"
-                  placeholder="Tìm sản phẩm, thương hiệu..."
-                  value={searchQuery}
-                  onFocus={() => setShowDropdown(true)}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setShowDropdown(true);
-                  }}
-                  className="w-full bg-surface-subtle border border-border-base rounded-theme pl-9 pr-4 py-1.5 text-sm placeholder:text-content-subtle text-content-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-                />
-                <Search className="w-4 h-4 text-content-muted absolute left-3 top-2.5 pointer-events-none" />
-              </form>
+            <div
+              ref={searchContainerRef}
+              className={cn(
+                'hidden md:block relative',
+                isSearchExpanded
+                  ? 'fixed z-50 left-1/2 top-24 -translate-x-1/2 w-[min(36rem,calc(100vw-2rem))]'
+                  : 'flex-shrink-0'
+              )}
+            >
+              {!isSearchExpanded ? (
+                <button
+                  type="button"
+                  onClick={() => setIsSearchExpanded(true)}
+                  className="h-10 w-11 flex items-center justify-center rounded-theme border border-border-base bg-surface-subtle text-content-muted hover:text-primary hover:border-primary transition-colors"
+                  aria-label="Mở tìm kiếm sản phẩm"
+                  title="Tìm kiếm sản phẩm"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              ) : (
+                <form onSubmit={handleSearchSubmit} className="relative">
+                  <input
+                    ref={desktopSearchInputRef}
+                    type="text"
+                    placeholder="Tìm sản phẩm, thương hiệu..."
+                    value={searchQuery}
+                    onFocus={() => setShowDropdown(true)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowDropdown(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        setIsSearchExpanded(false);
+                        setShowDropdown(false);
+                      }
+                    }}
+                    className="w-full bg-surface-card border border-primary rounded-xl pl-12 pr-12 py-4 text-base placeholder:text-content-subtle text-content-main shadow-2xl focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all"
+                  />
+                  <Search className="w-5 h-5 text-primary absolute left-4 top-4 pointer-events-none" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSearchExpanded(false);
+                      setShowDropdown(false);
+                    }}
+                    className="absolute right-3 top-3 p-1.5 rounded-md text-content-muted hover:bg-surface-subtle"
+                    aria-label="Đóng tìm kiếm"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </form>
+              )}
 
               {/* Live Search Suggestions Dropdown */}
-              {showDropdown && searchQuery.trim().length > 0 && (
+              {isSearchExpanded && showDropdown && searchQuery.trim().length > 0 && (
                 <div className="absolute left-0 right-0 mt-2 rounded-theme bg-surface-card border border-border-base shadow-xl p-2 z-50 animate-in fade-in zoom-in-95">
                   <div className="text-[11px] font-semibold text-content-muted px-2 py-1 uppercase tracking-wider flex justify-between">
                     <span>Gợi ý tìm kiếm</span>

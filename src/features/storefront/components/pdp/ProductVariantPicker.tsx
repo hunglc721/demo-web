@@ -32,6 +32,27 @@ const colorHexMap: Record<string, string> = {
   Tím: '#9333EA',
 };
 
+const getColorHex = (value: string): string => {
+  if (colorHexMap[value]) return colorHexMap[value];
+
+  const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (normalized.includes('trang') || normalized.includes('white')) return '#F8FAFC';
+  if (normalized.includes('bac') || normalized.includes('silver')) return '#CBD5E1';
+  if (normalized.includes('den') || normalized.includes('black')) return '#18181B';
+  if (normalized.includes('reu') || normalized.includes('olive') || normalized.includes('la')) return '#3F6212';
+  if (normalized.includes('xanh') || normalized.includes('blue') || normalized.includes('navy')) return '#2563EB';
+  if (normalized.includes('xam') || normalized.includes('gray') || normalized.includes('grey')) return '#71717A';
+  if (normalized.includes('beige') || normalized.includes('be')) return '#F5F5DC';
+  if (normalized.includes('kem') || normalized.includes('cream')) return '#FFFDD0';
+  if (normalized.includes('nau') || normalized.includes('brown')) return '#78350F';
+  if (normalized.includes('do') || normalized.includes('red')) return '#DC2626';
+  if (normalized.includes('hong') || normalized.includes('pink')) return '#EC4899';
+  if (normalized.includes('vang') || normalized.includes('yellow')) return '#EAB308';
+  if (normalized.includes('cam') || normalized.includes('orange')) return '#F97316';
+  if (normalized.includes('tim') || normalized.includes('purple')) return '#9333EA';
+  return '#9CA3AF';
+};
+
 export const ProductVariantPicker: React.FC<ProductVariantPickerProps> = ({
   options,
   variants,
@@ -73,7 +94,7 @@ export const ProductVariantPicker: React.FC<ProductVariantPickerProps> = ({
               {option.values.map((val) => {
                 const isSelected = selectedValue === val;
                 const isOOS = isOutOfStockCombination(option.name, val);
-                const hex = isColor ? colorHexMap[val] || '#9CA3AF' : null;
+                const hex = isColor ? getColorHex(val) : null;
 
                 if (isColor) {
                   const isWhite = val.toLowerCase().includes('trắng');
@@ -83,6 +104,8 @@ export const ProductVariantPicker: React.FC<ProductVariantPickerProps> = ({
                       type="button"
                       onClick={() => onChangeOption(option.name, val)}
                       title={`${val}${isOOS ? ' (Hết hàng)' : ''}`}
+                      aria-label={`Chọn màu ${val}${isOOS ? ', hết hàng' : ''}`}
+                      aria-pressed={isSelected}
                       className={cn(
                         'relative w-8 h-8 rounded-full transition-all duration-150 flex items-center justify-center shadow-sm',
                         isSelected

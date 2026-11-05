@@ -552,12 +552,16 @@ export const ProductFormPage: React.FC = () => {
               <Layers className="w-4 h-4 text-primary" />
               <span>Phân Loại & Biến Thể Sản Phẩm (Variant Matrix)</span>
             </h3>
+            <p className="text-xs text-content-muted">
+              Chọn ảnh riêng cho từng màu ở cột “Ảnh biến thể”; trang bán sẽ đổi sang ảnh đó khi khách chọn màu.
+            </p>
 
             <VariantMatrixBuilder
               options={options}
               onOptionsChange={setOptions}
               variants={variants}
               onVariantsChange={setVariants}
+              images={images}
               basePrice={watchedPrice || 0}
               baseStock={watchedStock || 0}
               baseSku={watchedSku || ''}

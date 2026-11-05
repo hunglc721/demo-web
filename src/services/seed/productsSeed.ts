@@ -814,6 +814,8 @@ export const seedProducts: Product[] = [
     lowStockThreshold: 5,
     images: [
       'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1544003484-3cd181d17917?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1664714628878-9d2aa898b9e3?auto=format&fit=crop&w=800&q=80',
     ],
     tags: ['best-seller'],
     status: 'active',
@@ -821,8 +823,8 @@ export const seedProducts: Product[] = [
       { name: 'Màu sắc', values: ['Đen Nhám', 'Trắng Bạc'] },
     ],
     variants: [
-      { id: 'var_23_blk', sku: 'THM-BLK', title: 'Đen Nhám', price: 310000, stock: 18, options: { 'Màu sắc': 'Đen Nhám' } },
-      { id: 'var_23_wht', sku: 'THM-WHT', title: 'Trắng Bạc', price: 310000, stock: 17, options: { 'Màu sắc': 'Trắng Bạc' } },
+      { id: 'var_23_blk', sku: 'THM-BLK', title: 'Đen Nhám', price: 310000, stock: 18, options: { 'Màu sắc': 'Đen Nhám' }, image: 'https://images.unsplash.com/photo-1544003484-3cd181d17917?auto=format&fit=crop&w=800&q=80' },
+      { id: 'var_23_wht', sku: 'THM-WHT', title: 'Trắng Bạc', price: 310000, stock: 17, options: { 'Màu sắc': 'Trắng Bạc' }, image: 'https://images.unsplash.com/photo-1664714628878-9d2aa898b9e3?auto=format&fit=crop&w=800&q=80' },
     ],
     rating: 4.8,
     reviewCount: 215,

@@ -8,6 +8,7 @@ export interface VariantMatrixBuilderProps {
   onOptionsChange: (options: ProductOption[]) => void;
   variants: ProductVariant[];
   onVariantsChange: (variants: ProductVariant[]) => void;
+  images: string[];
   basePrice: number;
   baseStock: number;
   baseSku: string;
@@ -18,6 +19,7 @@ export const VariantMatrixBuilder: React.FC<VariantMatrixBuilderProps> = ({
   onOptionsChange,
   variants,
   onVariantsChange,
+  images,
   basePrice,
   baseStock,
   baseSku,
@@ -175,7 +177,7 @@ export const VariantMatrixBuilder: React.FC<VariantMatrixBuilderProps> = ({
   // Update a single variant field
   const handleUpdateVariant = (
     vIdx: number,
-    field: 'sku' | 'price' | 'stock',
+    field: 'sku' | 'price' | 'stock' | 'image',
     value: string | number
   ) => {
     const updated = variants.map((v, idx) => {
@@ -397,6 +399,7 @@ export const VariantMatrixBuilder: React.FC<VariantMatrixBuilderProps> = ({
                 <th className="py-2.5 px-3">Mã SKU</th>
                 <th className="py-2.5 px-3">Giá Bán (₫)</th>
                 <th className="py-2.5 px-3">Tồn Kho</th>
+                <th className="py-2.5 px-3">Ảnh biến thể</th>
                 <th className="py-2.5 px-3 text-right">Xóa</th>
               </tr>
             </thead>
@@ -444,6 +447,22 @@ export const VariantMatrixBuilder: React.FC<VariantMatrixBuilderProps> = ({
                       }
                       className="w-20 bg-surface-subtle border border-border-base rounded px-2 py-1 text-xs text-content-main"
                     />
+                  </td>
+                  <td className="py-2.5 px-3">
+                    <div className="flex items-center gap-2 min-w-44">
+                      {v.image && <img src={v.image} alt="" className="w-9 h-9 rounded object-cover border border-border-base" />}
+                      <select
+                        value={v.image || ''}
+                        onChange={(e) => handleUpdateVariant(vIdx, 'image', e.target.value)}
+                        className="max-w-40 bg-surface-subtle border border-border-base rounded px-2 py-1 text-xs text-content-main"
+                        aria-label={`Ảnh cho biến thể ${v.title || v.sku}`}
+                      >
+                        <option value="">Ảnh mặc định</option>
+                        {images.map((image, imageIdx) => (
+                          <option key={`${imageIdx}-${image}`} value={image}>Ảnh sản phẩm {imageIdx + 1}</option>
+                        ))}
+                      </select>
+                    </div>
                   </td>
                   <td className="py-2.5 px-3 text-right">
                     <button

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Maximize2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
@@ -17,8 +17,13 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({
   productName,
 }) => {
   // Ensure we always have at least one valid image
-  const galleryImages =
-    initialImages && initialImages.length > 0 ? initialImages : [FALLBACK_IMAGE];
+  const galleryImages = useMemo(() => {
+    const baseImages = initialImages && initialImages.length > 0 ? initialImages : [FALLBACK_IMAGE];
+    if (selectedVariantImage && !baseImages.includes(selectedVariantImage)) {
+      return [...baseImages, selectedVariantImage];
+    }
+    return baseImages;
+  }, [initialImages, selectedVariantImage]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
