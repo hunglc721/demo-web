@@ -23,6 +23,9 @@ import { useThemeStore } from '@/stores/themeStore';
 import { useCartStore } from '@/stores/cartStore';
 import { useAuthStore } from '@/stores/authStore';
 import { CartDrawer } from '@/features/cart/components/CartDrawer';
+import { productService } from '@/services/api/productService';
+import type { Product } from '@/types/product';
+import { formatCurrencyVND } from '@/utils/formatters';
 
 const presetOptions: Array<{ id: ThemePreset; name: string; colorClass: string }> = [
   { id: 'emerald', name: 'Ngọc lục bảo', colorClass: 'bg-emerald-500' },
@@ -35,6 +38,10 @@ const presetOptions: Array<{ id: ThemePreset; name: string; colorClass: string }
 export const StorefrontLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showingSimilarProducts, setShowingSimilarProducts] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [showPresetPicker, setShowPresetPicker] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -55,16 +62,67 @@ export const StorefrontLayout: React.FC = () => {
     const handleOutsideClick = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setIsSearchExpanded(false);
+        setShowSearchResults(false);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!query) {
+      setSearchResults([]);
+      setIsSearching(false);
+      setShowingSimilarProducts(false);
+      return;
+    }
+
+    let active = true;
+    setIsSearching(true);
+    setSearchResults([]);
+    setShowingSimilarProducts(false);
+    const timer = window.setTimeout(async () => {
+      try {
+        const result = await productService.getProducts({
+          search: query,
+          status: 'active',
+          pageSize: 5,
+        });
+        if (!active) return;
+
+        if (result.items.length > 0) {
+          setSearchResults(result.items);
+          setShowingSimilarProducts(false);
+        } else {
+          const similarProducts = (await productService.getFeaturedProducts(5))
+            .filter((product) => product.status === 'active')
+            .slice(0, 5);
+          if (!active) return;
+          setSearchResults(similarProducts);
+          setShowingSimilarProducts(similarProducts.length > 0);
+        }
+      } catch {
+        if (active) {
+          setSearchResults([]);
+          setShowingSimilarProducts(false);
+        }
+      } finally {
+        if (active) setIsSearching(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       setIsSearchExpanded(false);
+      setShowSearchResults(false);
       navigate(`/catalog?q=${encodeURIComponent(searchQuery.trim())}`);
       setMobileMenuOpen(false);
     }
@@ -152,22 +210,85 @@ export const StorefrontLayout: React.FC = () => {
                     type="text"
                     placeholder="Tìm sản phẩm, thương hiệu..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setShowSearchResults(true)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setShowSearchResults(true);
+                    }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Escape') setIsSearchExpanded(false);
+                      if (e.key === 'Escape') {
+                        setIsSearchExpanded(false);
+                        setShowSearchResults(false);
+                      }
                     }}
                     className="w-full bg-surface-card border border-primary rounded-xl pl-12 pr-12 py-4 text-base placeholder:text-content-subtle text-content-main shadow-2xl focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all"
                   />
                   <Search className="w-5 h-5 text-primary absolute left-4 top-4 pointer-events-none" />
                   <button
                     type="button"
-                    onClick={() => setIsSearchExpanded(false)}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setShowSearchResults(false);
+                    }}
                     className="absolute right-3 top-3 p-1.5 rounded-md text-content-muted hover:bg-surface-subtle"
-                    aria-label="Đóng tìm kiếm"
+                    aria-label="Xóa nội dung tìm kiếm"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </form>
+              )}
+              {isSearchExpanded && showSearchResults && searchQuery.trim() && (
+                <div className="absolute left-0 right-0 mt-2 max-h-[70vh] overflow-y-auto rounded-xl bg-surface-card border border-border-base shadow-2xl p-2 z-50">
+                  <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-content-muted">
+                    <span>
+                      {showingSimilarProducts ? 'Không thấy đúng sản phẩm — gợi ý cho bạn' : 'Sản phẩm phù hợp'}
+                    </span>
+                    {isSearching && <span className="animate-pulse">Đang tìm...</span>}
+                  </div>
+
+                  {searchResults.length > 0 ? (
+                    <div className="divide-y divide-border-base/60">
+                      {searchResults.map((product) => (
+                        <Link
+                          key={product.id}
+                          to={`/product/${product.slug}`}
+                          onClick={() => {
+                            setIsSearchExpanded(false);
+                            setShowSearchResults(false);
+                          }}
+                          className="flex items-center gap-3 rounded-lg p-2 hover:bg-surface-subtle transition-colors"
+                        >
+                          <img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className="h-12 w-12 rounded-md bg-surface-subtle object-cover flex-shrink-0"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-content-main">{product.name}</p>
+                            <p className="truncate text-xs text-content-muted">{product.categoryName || 'Sản phẩm'}</p>
+                          </div>
+                          <span className="whitespace-nowrap text-sm font-bold text-primary">
+                            {formatCurrencyVND(product.price)}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : !isSearching ? (
+                    <p className="px-3 py-4 text-center text-sm text-content-muted">Không tìm thấy sản phẩm phù hợp.</p>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSearchExpanded(false);
+                      setShowSearchResults(false);
+                      navigate(`/catalog?q=${encodeURIComponent(searchQuery.trim())}`);
+                    }}
+                    className="mt-2 w-full rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+                  >
+                    Xem tất cả kết quả cho “{searchQuery.trim()}”
+                  </button>
+                </div>
               )}
             </div>
 
