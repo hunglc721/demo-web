@@ -18,7 +18,7 @@ import { customerService } from './api/customerService';
 import { couponService } from './api/couponService';
 import { blockService } from './api/blockService';
 import { reviewService } from './api/reviewService';
-import { defaultAdminUser, useAuthStore } from '@/stores/authStore';
+import { AUTH_STORAGE_KEY, useAuthStore } from '@/stores/authStore';
 import { defaultAppConfig } from '@/config/appConfig';
 import { useThemeStore } from '@/stores/themeStore';
 import { useCartStore } from '@/stores/cartStore';
@@ -53,8 +53,8 @@ export class SystemService implements ISystemService {
 
       // Rehydrate auth, cart, theme
       localStorage.setItem(
-        STORAGE_KEYS.AUTH,
-        JSON.stringify({ user: defaultAdminUser, isAuthenticated: true })
+        AUTH_STORAGE_KEY,
+        JSON.stringify({ user: null, isAuthenticated: false })
       );
       localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify([]));
       localStorage.setItem(

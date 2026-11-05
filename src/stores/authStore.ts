@@ -19,7 +19,7 @@ export interface AuthState {
   logout: () => void;
 }
 
-export const AUTH_STORAGE_KEY = 'd2c_ecommerce:auth:v1';
+export const AUTH_STORAGE_KEY = 'd2c_ecommerce:auth:v2';
 export const STORAGE_KEY = AUTH_STORAGE_KEY;
 
 export const defaultAdminUser: User = {
