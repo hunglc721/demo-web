@@ -6,3 +6,4 @@ export * from './ordersSeed';
 export * from './customersSeed';
 export * from './couponsSeed';
 export * from './blocksSeed';
+export * from './reviewsSeed';

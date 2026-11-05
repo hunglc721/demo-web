@@ -11,10 +11,13 @@ import { seedOrders } from './seed/ordersSeed';
 import { seedCustomers } from './seed/customersSeed';
 import { seedCoupons } from './seed/couponsSeed';
 import { defaultStorefrontBlocks } from './seed/blocksSeed';
+import { seedReviews } from './seed/reviewsSeed';
 import { productService } from './api/productService';
 import { orderService } from './api/orderService';
 import { customerService } from './api/customerService';
 import { couponService } from './api/couponService';
+import { blockService } from './api/blockService';
+import { reviewService } from './api/reviewService';
 import { defaultAdminUser, useAuthStore } from '@/stores/authStore';
 import { defaultAppConfig } from '@/config/appConfig';
 import { useThemeStore } from '@/stores/themeStore';
@@ -70,6 +73,8 @@ export class SystemService implements ISystemService {
       orderService.getRepository().resetToSeed();
       customerService.getRepository().resetToSeed();
       couponService.getRepository().resetToSeed();
+      blockService.getRepository().resetToSeed();
+      reviewService.getRepository().resetToSeed();
     } catch {
       // Repositories might not be loaded yet
     }
@@ -92,6 +97,7 @@ export class SystemService implements ISystemService {
       customers: seedCustomers.length,
       coupons: seedCoupons.length,
       blocks: defaultStorefrontBlocks.length,
+      reviews: seedReviews.length,
     };
 
     // 5. Broadcast reset events
@@ -143,6 +149,9 @@ export class SystemService implements ISystemService {
     }
     if (!localStorage.getItem(STORAGE_KEYS.BLOCKS)) {
       localStorage.setItem(STORAGE_KEYS.BLOCKS, JSON.stringify(defaultStorefrontBlocks));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.REVIEWS)) {
+      localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(seedReviews));
     }
   }
 

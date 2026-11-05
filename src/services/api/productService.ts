@@ -58,7 +58,7 @@ export class ProductService implements IProductService {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
 
-    return this.productRepo.create({
+    const created = await this.productRepo.create({
       ...data,
       slug,
       stock: data.stock ?? 0,
@@ -72,14 +72,27 @@ export class ProductService implements IProductService {
       reviewCount: data.reviewCount ?? 0,
       salesCount: data.salesCount ?? 0,
     } as any);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('d2c:products-updated', { detail: { action: 'create', product: created } }));
+    }
+    return created;
   }
 
   public async updateProduct(id: string, data: UpdateProductDTO): Promise<Product> {
-    return this.productRepo.update(id, data as any);
+    const updated = await this.productRepo.update(id, data as any);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('d2c:products-updated', { detail: { action: 'update', product: updated } }));
+    }
+    return updated;
   }
 
   public async deleteProduct(id: string): Promise<boolean> {
-    return this.productRepo.delete(id);
+    const deleted = await this.productRepo.delete(id);
+    if (deleted && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('d2c:products-updated', { detail: { action: 'delete', id } }));
+    }
+    return deleted;
   }
 
   public async getCategories(): Promise<Category[]> {

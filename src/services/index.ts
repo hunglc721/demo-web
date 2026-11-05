@@ -34,4 +34,6 @@ export * from './api/productService';
 export * from './api/orderService';
 export * from './api/customerService';
 export * from './api/couponService';
+export * from './api/blockService';
+export * from './api/reviewService';
 export * from './systemService';

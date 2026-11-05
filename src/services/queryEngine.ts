@@ -304,8 +304,8 @@ export function paginateItems<T>(
   options?: QueryPaginationOptions
 ): PaginatedResponse<T> {
   const total = items.length;
-  const rawPageSize = options?.pageSize ?? 10;
-  const pageSize = Math.min(Math.max(1, rawPageSize), 100); // 1 <= pageSize <= 100
+  const rawPageSize = options?.pageSize ?? (options as any)?.limit ?? 10;
+  const pageSize = Math.min(Math.max(1, rawPageSize), 500); // 1 <= pageSize <= 500
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const rawPage = options?.page ?? 1;
@@ -335,12 +335,13 @@ export function applyQueryPipeline<T extends Record<string, any>>(
   options?: QueryOptions<T>
 ): PaginatedResponse<T> {
   if (!items || items.length === 0) {
+    const rawSize = options?.pageSize ?? (options as any)?.limit ?? 10;
     return {
       items: [],
       data: [],
       total: 0,
       page: 1,
-      pageSize: options?.pageSize || 10,
+      pageSize: rawSize,
       totalPages: 1,
       hasNextPage: false,
       hasPrevPage: false,
@@ -363,6 +364,6 @@ export function applyQueryPipeline<T extends Record<string, any>>(
   // 3. Paginate
   return paginateItems(sorted, {
     page: opts.page,
-    pageSize: opts.pageSize,
+    pageSize: opts.pageSize ?? (opts as any)?.limit,
   });
 }
