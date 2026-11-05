@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   ShoppingBag,
@@ -26,6 +26,7 @@ import { CartDrawer } from '@/features/cart/components/CartDrawer';
 import { productService } from '@/services/api/productService';
 import type { Product } from '@/types/product';
 import { formatCurrencyVND } from '@/utils/formatters';
+import { calculateRelevanceScore, matchesVietnameseSearch } from '@/utils/vietnameseSearch';
 
 const presetOptions: Array<{ id: ThemePreset; name: string; colorClass: string }> = [
   { id: 'emerald', name: 'Ngọc lục bảo', colorClass: 'bg-emerald-500' },
@@ -38,10 +39,9 @@ const presetOptions: Array<{ id: ThemePreset; name: string; colorClass: string }
 export const StorefrontLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [searchCatalog, setSearchCatalog] = useState<Product[]>([]);
+  const [isSearchCatalogLoading, setIsSearchCatalogLoading] = useState(true);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [showingSimilarProducts, setShowingSimilarProducts] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [showPresetPicker, setShowPresetPicker] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +53,47 @@ export const StorefrontLayout: React.FC = () => {
   const navigate = useNavigate();
 
   const cartCount = getTotalItems();
+  const searchResults = useMemo(() => {
+    const activeProducts = searchCatalog.filter((product) => product.status === 'active');
+    const query = searchQuery.trim();
+    const popularProducts = activeProducts
+      .filter((product) => product.isFeatured || product.tags.includes('featured') || product.isFlashSale)
+      .sort((a, b) => (b.salesCount || 0) - (a.salesCount || 0));
+
+    if (!query) return popularProducts.slice(0, 5);
+
+    const matches = activeProducts
+      .filter((product) => matchesVietnameseSearch([
+        product.name,
+        product.sku,
+        product.shortDescription,
+        product.description,
+        product.categoryName,
+        product.tags.join(' '),
+        ...product.variants.map((variant) => `${variant.title || ''} ${variant.sku}`),
+      ], query))
+      .sort((a, b) => {
+        const score = (product: Product) => calculateRelevanceScore(
+          product.name,
+          [product.sku, product.categoryName, product.shortDescription, product.tags.join(' ')],
+          query
+        );
+        return score(b) - score(a);
+      });
+
+    return matches.length > 0 ? matches.slice(0, 5) : popularProducts.slice(0, 5);
+  }, [searchCatalog, searchQuery]);
+  const showingSimilarProducts = searchQuery.trim().length > 0 && !searchResults.some((product) =>
+    matchesVietnameseSearch([
+      product.name,
+      product.sku,
+      product.shortDescription,
+      product.description,
+      product.categoryName,
+      product.tags.join(' '),
+      ...product.variants.map((variant) => `${variant.title || ''} ${variant.sku}`),
+    ], searchQuery.trim())
+  );
 
   useEffect(() => {
     if (isSearchExpanded) desktopSearchInputRef.current?.focus();
@@ -70,53 +111,34 @@ export const StorefrontLayout: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const query = searchQuery.trim();
-    if (!query) {
-      setSearchResults([]);
-      setIsSearching(false);
-      setShowingSimilarProducts(false);
-      return;
-    }
-
     let active = true;
-    setIsSearching(true);
-    setSearchResults([]);
-    setShowingSimilarProducts(false);
-    const timer = window.setTimeout(async () => {
+    const loadSearchCatalog = async () => {
       try {
         const result = await productService.getProducts({
-          search: query,
           status: 'active',
-          pageSize: 5,
+          pageSize: 100,
+          sortBy: 'salesCount',
+          sortOrder: 'desc',
         });
         if (!active) return;
-
-        if (result.items.length > 0) {
-          setSearchResults(result.items);
-          setShowingSimilarProducts(false);
-        } else {
-          const similarProducts = (await productService.getFeaturedProducts(5))
-            .filter((product) => product.status === 'active')
-            .slice(0, 5);
-          if (!active) return;
-          setSearchResults(similarProducts);
-          setShowingSimilarProducts(similarProducts.length > 0);
-        }
+        setSearchCatalog(result.items);
       } catch {
-        if (active) {
-          setSearchResults([]);
-          setShowingSimilarProducts(false);
-        }
+        if (active) setSearchCatalog([]);
       } finally {
-        if (active) setIsSearching(false);
+        if (active) setIsSearchCatalogLoading(false);
       }
-    }, 250);
+    };
+
+    loadSearchCatalog();
+    window.addEventListener('d2c:products-updated', loadSearchCatalog);
+    window.addEventListener('storage', loadSearchCatalog);
 
     return () => {
       active = false;
-      window.clearTimeout(timer);
+      window.removeEventListener('d2c:products-updated', loadSearchCatalog);
+      window.removeEventListener('storage', loadSearchCatalog);
     };
-  }, [searchQuery]);
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,21 +251,26 @@ export const StorefrontLayout: React.FC = () => {
                     onClick={() => {
                       setSearchQuery('');
                       setShowSearchResults(false);
+                      setIsSearchExpanded(false);
                     }}
                     className="absolute right-3 top-3 p-1.5 rounded-md text-content-muted hover:bg-surface-subtle"
-                    aria-label="Xóa nội dung tìm kiếm"
+                    aria-label="Đóng tìm kiếm"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </form>
               )}
-              {isSearchExpanded && showSearchResults && searchQuery.trim() && (
+              {isSearchExpanded && showSearchResults && (
                 <div className="absolute left-0 right-0 mt-2 max-h-[70vh] overflow-y-auto rounded-xl bg-surface-card border border-border-base shadow-2xl p-2 z-50">
                   <div className="flex items-center justify-between px-3 py-2 text-xs font-semibold text-content-muted">
                     <span>
-                      {showingSimilarProducts ? 'Không thấy đúng sản phẩm — gợi ý cho bạn' : 'Sản phẩm phù hợp'}
+                      {!searchQuery.trim()
+                        ? 'Sản phẩm nổi bật'
+                        : showingSimilarProducts
+                        ? 'Không thấy đúng sản phẩm — gợi ý cho bạn'
+                        : 'Sản phẩm phù hợp'}
                     </span>
-                    {isSearching && <span className="animate-pulse">Đang tìm...</span>}
+                    {isSearchCatalogLoading && <span className="animate-pulse">Đang tải sản phẩm...</span>}
                   </div>
 
                   {searchResults.length > 0 ? (
@@ -273,21 +300,25 @@ export const StorefrontLayout: React.FC = () => {
                         </Link>
                       ))}
                     </div>
-                  ) : !isSearching ? (
-                    <p className="px-3 py-4 text-center text-sm text-content-muted">Không tìm thấy sản phẩm phù hợp.</p>
+                  ) : !isSearchCatalogLoading ? (
+                    <p className="px-3 py-4 text-center text-sm text-content-muted">
+                      {searchQuery.trim() ? 'Không tìm thấy sản phẩm phù hợp.' : 'Chưa có sản phẩm để gợi ý.'}
+                    </p>
                   ) : null}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsSearchExpanded(false);
-                      setShowSearchResults(false);
-                      navigate(`/catalog?q=${encodeURIComponent(searchQuery.trim())}`);
-                    }}
-                    className="mt-2 w-full rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
-                  >
-                    Xem tất cả kết quả cho “{searchQuery.trim()}”
-                  </button>
+                  {searchQuery.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSearchExpanded(false);
+                        setShowSearchResults(false);
+                        navigate(`/catalog?q=${encodeURIComponent(searchQuery.trim())}`);
+                      }}
+                      className="mt-2 w-full rounded-lg px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      Xem tất cả kết quả cho “{searchQuery.trim()}”
+                    </button>
+                  )}
                 </div>
               )}
             </div>
