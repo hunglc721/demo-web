@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { defaultAppConfig } from '@/config/appConfig';
@@ -28,127 +28,171 @@ export interface HeroBannerBlockProps {
   };
 }
 
+const DEFAULT_HERO_IMAGE =
+  'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2000&q=85';
+const AUTOPLAY_INTERVAL_MS = 6000;
+
 export const HeroBannerBlock: React.FC<HeroBannerBlockProps> = ({ settings }) => {
-  const slides: HeroSlide[] = settings?.slides || [
-    {
-      tag: settings?.tag || 'Nền Tảng E-Commerce D2C Khởi Nghiệp',
-      title: settings?.title || 'Xây Dựng Thương Hiệu Độc Lập — Tự Do Tăng Trưởng Doanh Thu',
-      subtitle:
-        settings?.subtitle ||
-        `${defaultAppConfig.store.brandSlogan}. Giải pháp tối ưu cho nhà bán hàng rời sàn với trải nghiệm mua sắm mượt mà.`,
-      ctaText: settings?.ctaText || 'Khám Phá Ngay',
-      ctaLink: settings?.ctaLink || '/catalog',
-      secondaryCtaText: settings?.secondaryCtaText || 'Vào Quản Trị Admin',
-      secondaryCtaLink: settings?.secondaryCtaLink || '/admin/dashboard',
-      backgroundImage:
-        settings?.backgroundImage ||
-        'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80',
-    },
-    {
-      tag: 'Bộ Sưu Tập Thu Đông Mới Nhất',
-      title: 'Thời Trang Tối Giản — Phong Cách Đẳng Cấp Cho Giới Trẻ',
-      subtitle: 'Chất liệu vải dệt organic thoáng mát, thân thiện với làn da, phom dáng tôn lên nét thanh lịch hiện đại.',
-      ctaText: 'Xem Bộ Sưu Tập',
-      ctaLink: '/catalog?category=thoi-trang-nam',
-      secondaryCtaText: 'Săn Deal Flash Sale',
-      secondaryCtaLink: '/flash-sale',
-      backgroundImage:
-        'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1600&q=80',
-    },
-  ];
+  const configuredSlides = (settings?.slides || []).filter((slide) => slide.backgroundImage?.trim());
+  const slides: HeroSlide[] = configuredSlides.length > 0
+    ? configuredSlides
+    : [
+        {
+          tag: settings?.tag || 'Nền Tảng E-Commerce D2C Khởi Nghiệp',
+          title: settings?.title || 'Xây Dựng Thương Hiệu Độc Lập — Tự Do Tăng Trưởng Doanh Thu',
+          subtitle:
+            settings?.subtitle ||
+            `${defaultAppConfig.store.brandSlogan}. Giải pháp tối ưu cho nhà bán hàng rời sàn với trải nghiệm mua sắm mượt mà.`,
+          ctaText: settings?.ctaText || 'Khám Phá Ngay',
+          ctaLink: settings?.ctaLink || '/catalog',
+          secondaryCtaText: settings?.secondaryCtaText || 'Vào Quản Trị Admin',
+          secondaryCtaLink: settings?.secondaryCtaLink || '/admin/dashboard',
+          backgroundImage: settings?.backgroundImage || DEFAULT_HERO_IMAGE,
+        },
+      ];
 
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const activeIndex = currentSlide % slides.length;
+  const active = slides[activeIndex];
+  const nextImageUrl = slides.length > 1
+    ? slides[(activeIndex + 1) % slides.length].backgroundImage || DEFAULT_HERO_IMAGE
+    : '';
 
   useEffect(() => {
-    if (slides.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [slides.length]);
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
+    updatePreference();
+    mediaQuery.addEventListener('change', updatePreference);
+    return () => mediaQuery.removeEventListener('change', updatePreference);
+  }, []);
 
-  const active = slides[currentSlide];
+  useEffect(() => {
+    if (slides.length <= 1 || isPaused || prefersReducedMotion) return;
+    const interval = window.setInterval(() => {
+      setCurrentSlide((index) => (index + 1) % slides.length);
+    }, AUTOPLAY_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [activeIndex, isPaused, prefersReducedMotion, slides.length]);
+
+  useEffect(() => {
+    if (!nextImageUrl) return;
+    const nextImage = new Image();
+    nextImage.src = nextImageUrl;
+  }, [nextImageUrl]);
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide((index + slides.length) % slides.length);
+  };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-surface-card to-surface-subtle border-b border-border-base transition-all duration-700">
-      {/* Background Image Overlay with Gradient */}
-      <div className="absolute inset-0 z-0 opacity-15 dark:opacity-10 pointer-events-none transition-opacity duration-700">
+    <section
+      aria-label="Banner trang chủ"
+      aria-roledescription="carousel"
+      className="relative isolate min-h-[540px] overflow-hidden bg-slate-950 text-white sm:min-h-[600px] lg:min-h-[640px]"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onFocusCapture={() => setIsPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsPaused(false);
+      }}
+    >
+      <div key={active.backgroundImage || DEFAULT_HERO_IMAGE} className="absolute inset-0 animate-in fade-in duration-700">
         <img
-          src={active.backgroundImage}
-          alt={active.title}
-          className="w-full h-full object-cover"
+          src={active.backgroundImage || DEFAULT_HERO_IMAGE}
+          alt=""
+          aria-hidden="true"
+          className="h-full w-full object-cover object-center"
+          onError={(event) => {
+            event.currentTarget.style.visibility = 'hidden';
+          }}
         />
       </div>
+      <div className="pointer-events-none absolute inset-0 bg-slate-950/40 sm:bg-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-slate-950/75 via-slate-950/40 to-slate-950/5" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-slate-950/10" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center space-y-6">
-        {active.tag && (
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider shadow-sm animate-in fade-in slide-in-from-top-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            {active.tag}
-          </div>
-        )}
-
-        <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-content-main tracking-tight max-w-4xl mx-auto leading-tight animate-in fade-in zoom-in-95 duration-300">
-          {active.title}
-        </h1>
-
-        <p className="text-base sm:text-lg text-content-muted max-w-2xl mx-auto leading-relaxed">
-          {active.subtitle}
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
-          {active.ctaLink && (
-            <Link
-              to={active.ctaLink}
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-theme bg-primary text-white font-semibold hover:bg-primary-hover shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-95 transition-all text-sm sm:text-base"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              <span>{active.ctaText || 'Khám Phá Ngay'}</span>
-            </Link>
+      <div className="relative z-10 mx-auto flex min-h-[540px] max-w-7xl items-center px-5 py-16 sm:min-h-[600px] sm:px-10 lg:min-h-[640px] lg:px-8">
+        <div key={activeIndex} className="max-w-3xl animate-in fade-in slide-in-from-left-3 duration-500">
+          {active.tag && (
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              {active.tag}
+            </div>
           )}
 
-          {active.secondaryCtaLink && (
-            <Link
-              to={active.secondaryCtaLink}
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-theme bg-surface-card border border-border-base text-content-main font-semibold hover:bg-surface-subtle transition-all text-sm sm:text-base shadow-sm"
-            >
-              <span>{active.secondaryCtaText || 'Vào Quản Trị Admin'}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+          <h1 className="max-w-3xl text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+            {active.title}
+          </h1>
+
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg">
+            {active.subtitle}
+          </p>
+
+          <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            {active.ctaLink && (
+              <Link
+                to={active.ctaLink}
+                className="inline-flex items-center gap-2 rounded-theme bg-primary px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-black/20 transition-all hover:bg-primary-hover active:scale-95 sm:text-base"
+              >
+                <ShoppingBag className="h-5 w-5" />
+                <span>{active.ctaText || 'Khám Phá Ngay'}</span>
+              </Link>
+            )}
+
+            {active.secondaryCtaLink && (
+              <Link
+                to={active.secondaryCtaLink}
+                className="inline-flex items-center gap-2 rounded-theme border border-white/30 bg-slate-950/20 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/10 sm:text-base"
+              >
+                <span>{active.secondaryCtaText || 'Vào Quản Trị Admin'}</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
+          </div>
+
+          {slides.length > 1 && (
+            <div className="mt-9 flex items-center gap-3" aria-label="Điều hướng banner">
+              <button
+                type="button"
+                onClick={() => goToSlide(activeIndex - 1)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-slate-950/25 text-white backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Slide trước"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <div className="flex items-center gap-2" role="group" aria-label="Chọn slide">
+                {slides.map((slide, index) => (
+                  <button
+                    key={`${slide.title}-${index}`}
+                    type="button"
+                    onClick={() => goToSlide(index)}
+                    className={`h-2.5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                      activeIndex === index ? 'w-9 bg-white' : 'w-2.5 bg-white/45 hover:bg-white/75'
+                    }`}
+                    aria-label={`Đi tới slide ${index + 1}`}
+                    aria-current={activeIndex === index ? 'true' : undefined}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => goToSlide(activeIndex + 1)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-slate-950/25 text-white backdrop-blur-sm transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Slide tiếp theo"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <span className="ml-1 text-xs font-medium tabular-nums text-white/75" aria-live="polite">
+                {String(activeIndex + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
+              </span>
+            </div>
           )}
         </div>
-
-        {/* Carousel Slide Indicators */}
-        {slides.length > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-6">
-            <button
-              onClick={() => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)}
-              className="p-1.5 rounded-full bg-surface-card border border-border-base text-content-muted hover:text-primary transition-colors"
-              aria-label="Slide trước"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            {slides.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  currentSlide === idx ? 'w-8 bg-primary' : 'w-2 bg-border-base hover:bg-content-muted'
-                }`}
-                aria-label={`Đi tới slide ${idx + 1}`}
-              />
-            ))}
-            <button
-              onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)}
-              className="p-1.5 rounded-full bg-surface-card border border-border-base text-content-muted hover:text-primary transition-colors"
-              aria-label="Slide tiếp theo"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
       </div>
     </section>
   );
 };
+
 export default HeroBannerBlock;

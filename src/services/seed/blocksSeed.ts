@@ -15,6 +15,28 @@ export const defaultStorefrontBlocks: StorefrontBlockConfig[] = [
       secondaryCtaText: 'Vào Quản Trị Admin',
       secondaryCtaLink: '/admin/dashboard',
       backgroundImage: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80',
+      slides: [
+        {
+          tag: 'Nền Tảng E-Commerce D2C Khởi Nghiệp',
+          title: 'Xây Dựng Thương Hiệu Độc Lập — Tự Do Tăng Trưởng Doanh Thu',
+          subtitle: 'Nền tảng bán hàng trực tiếp D2C đột phá doanh thu. Trải nghiệm mua sắm mượt mà, độc lập hoàn toàn khỏi sàn.',
+          ctaText: 'Khám Phá Ngay',
+          ctaLink: '/catalog',
+          secondaryCtaText: 'Vào Quản Trị Admin',
+          secondaryCtaLink: '/admin/dashboard',
+          backgroundImage: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2000&q=85',
+        },
+        {
+          tag: 'Bộ Sưu Tập Thu Đông Mới Nhất',
+          title: 'Thời Trang Tối Giản — Phong Cách Đẳng Cấp Cho Giới Trẻ',
+          subtitle: 'Chất liệu vải dệt organic thoáng mát, thân thiện với làn da, phom dáng tôn lên nét thanh lịch hiện đại.',
+          ctaText: 'Xem Bộ Sưu Tập',
+          ctaLink: '/catalog?category=thoi-trang-nam',
+          secondaryCtaText: 'Săn Deal Flash Sale',
+          secondaryCtaLink: '/flash-sale',
+          backgroundImage: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=2000&q=85',
+        },
+      ],
     },
   },
   {
