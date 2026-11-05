@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { Sun, Moon, ArrowLeft } from 'lucide-react';
+import { Sun, Moon, ArrowLeft, LogIn, LogOut } from 'lucide-react';
 import { defaultAppConfig } from '@/config/appConfig';
 import { useThemeStore } from '@/stores/themeStore';
+import { useAuthStore } from '@/stores/authStore';
 
 export const BlankLayout: React.FC = () => {
   const { mode, toggleMode } = useThemeStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
 
   return (
     <div className="min-h-screen bg-surface-base text-content-main flex flex-col">
@@ -31,6 +33,20 @@ export const BlankLayout: React.FC = () => {
             </span>
           </Link>
         </div>
+
+        {isAuthenticated && user ? (
+          <div className="flex items-center gap-2 rounded-theme bg-surface-subtle px-2.5 py-1.5 text-xs text-content-main">
+            <span className="max-w-32 truncate">{user.name}</span>
+            <button type="button" onClick={logout} title="Đăng xuất" aria-label="Đăng xuất" className="text-content-muted hover:text-status-danger">
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <Link to="/login" className="flex items-center gap-1.5 rounded-theme px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
+            <LogIn className="h-3.5 w-3.5" />
+            <span>Đăng nhập</span>
+          </Link>
+        )}
 
         {/* Theme Mode Toggle */}
         <button
