@@ -23,6 +23,14 @@ import { defaultAppConfig } from '@/config/appConfig';
 import { useThemeStore } from '@/stores/themeStore';
 import { useCartStore } from '@/stores/cartStore';
 
+const PRODUCT_RATING_MIGRATION_KEY = `${STORAGE_PREFIX}:product-ratings:v2`;
+const PREVIOUS_SEED_RATINGS: Record<string, number> = {
+  prod_06: 4.8,
+  prod_10: 4.8,
+  prod_17: 4.7,
+  prod_21: 4.6,
+};
+
 export class SystemService implements ISystemService {
   /**
    * Resets all demo data to initial seed baseline.
@@ -134,6 +142,32 @@ export class SystemService implements ISystemService {
 
     if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
       localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(seedProducts));
+    }
+    if (!localStorage.getItem(PRODUCT_RATING_MIGRATION_KEY)) {
+      try {
+        const storedProducts = JSON.parse(localStorage.getItem(STORAGE_KEYS.PRODUCTS) || '[]') as Array<{
+          id?: string;
+          rating?: number;
+        }>;
+        const seededRatings = new Map(seedProducts.map((product) => [product.id, product.rating]));
+        let didMigrateRatings = false;
+        const migratedProducts = storedProducts.map((product) => {
+          const previousRating = product.id ? PREVIOUS_SEED_RATINGS[product.id] : undefined;
+          const nextRating = product.id ? seededRatings.get(product.id) : undefined;
+          if (previousRating !== undefined && product.rating === previousRating && nextRating !== undefined) {
+            didMigrateRatings = true;
+            return { ...product, rating: nextRating };
+          }
+          return product;
+        });
+        if (didMigrateRatings) {
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(migratedProducts));
+          window.dispatchEvent(new Event('d2c:products-updated'));
+        }
+      } catch {
+        // Keep the stored catalog intact if it cannot be parsed safely.
+      }
+      localStorage.setItem(PRODUCT_RATING_MIGRATION_KEY, 'done');
     }
     if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
       localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(seedCategories));
