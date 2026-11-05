@@ -69,7 +69,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <BlankLayout />,
     children: [
-      { path: 'checkout', element: wrap(CheckoutPage) },
+      { path: 'checkout', element: <ProtectedRoute>{wrap(CheckoutPage)}</ProtectedRoute> },
       { path: 'checkout/success', element: wrap(OrderSuccessPage) },
       { path: 'order-success/:orderId', element: wrap(OrderSuccessPage) },
       { path: 'login', element: wrap(LoginPage) },

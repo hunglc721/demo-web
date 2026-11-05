@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Search, Sun, Moon, Sparkles, X, Menu, Shield, LogIn } from 'lucide-react';
+import { ShoppingBag, Search, Sun, Moon, Sparkles, X, Menu, Shield, LogIn, LogOut } from 'lucide-react';
 import { defaultAppConfig } from '@/config/appConfig';
 import { useThemeStore } from '@/stores/themeStore';
 import { useCartStore } from '@/stores/cartStore';
@@ -30,7 +30,7 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
 
   const { mode, toggleMode } = useThemeStore();
   const { getTotalItems, openCart } = useCartStore();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
 
   const cartCount = getTotalItems();
@@ -279,7 +279,14 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
                   <span>Admin</span>
                 </Link>
               )}
-              {user?.role !== 'admin' && (
+              {isAuthenticated && user && user.role !== 'admin' ? (
+                <div className="hidden sm:flex items-center gap-2 rounded-theme bg-surface-subtle px-2.5 py-1.5 text-xs text-content-main">
+                  <span className="max-w-24 truncate">{user.name}</span>
+                  <button type="button" onClick={logout} title="Đăng xuất" aria-label="Đăng xuất" className="text-content-muted hover:text-status-danger">
+                    <LogOut className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (!isAuthenticated || !user) && (
                 <Link
                   to="/login"
                   className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-theme text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
@@ -348,7 +355,16 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
                   <span>Trang quản trị Admin</span>
                 </Link>
               )}
-              {user?.role !== 'admin' && (
+              {isAuthenticated && user && user.role !== 'admin' ? (
+                <button
+                  type="button"
+                  onClick={() => { logout(); setMobileMenuOpen(false); }}
+                  className="px-3 py-2 rounded-theme text-sm font-medium text-status-danger hover:bg-surface-subtle flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Đăng xuất ({user.name})</span>
+                </button>
+              ) : (!isAuthenticated || !user) && (
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
 
 export const LoginPage: React.FC = () => {
-  const [role, setRole] = useState<UserRole>('admin');
+  const location = useLocation();
+  const checkoutRedirect = location.state?.from?.pathname === '/checkout';
+  const [role, setRole] = useState<UserRole>(checkoutRedirect ? 'customer' : 'admin');
   const { switchRole } = useAuthStore();
   const navigate = useNavigate();
 
@@ -14,7 +16,7 @@ export const LoginPage: React.FC = () => {
     if (role === 'admin' || role === 'staff') {
       navigate('/admin/dashboard');
     } else {
-      navigate('/');
+      navigate(checkoutRedirect ? '/checkout' : '/');
     }
   };
 

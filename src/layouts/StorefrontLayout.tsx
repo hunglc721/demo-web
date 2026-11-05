@@ -17,6 +17,7 @@ import {
   Truck,
   Palette,
   LogIn,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { defaultAppConfig, type ThemePreset } from '@/config/appConfig';
@@ -50,7 +51,7 @@ export const StorefrontLayout: React.FC = () => {
 
   const { mode, toggleMode, preset, setPreset } = useThemeStore();
   const { getTotalItems, openCart } = useCartStore();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
 
   const cartCount = getTotalItems();
@@ -383,7 +384,14 @@ export const StorefrontLayout: React.FC = () => {
                 </Link>
               )}
 
-              {user?.role !== 'admin' && (
+              {isAuthenticated && user && user.role !== 'admin' ? (
+                <div className="hidden sm:flex items-center gap-2 rounded-theme bg-surface-subtle px-2.5 py-1.5 text-xs text-content-main">
+                  <span className="max-w-24 truncate">{user.name}</span>
+                  <button type="button" onClick={logout} title="Đăng xuất" aria-label="Đăng xuất" className="text-content-muted hover:text-status-danger">
+                    <LogOut className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (!isAuthenticated || !user) && (
                 <Link
                   to="/login"
                   className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-theme text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
@@ -453,7 +461,16 @@ export const StorefrontLayout: React.FC = () => {
                   <span>Trang quản trị Admin</span>
                 </Link>
               )}
-              {user?.role !== 'admin' && (
+              {isAuthenticated && user && user.role !== 'admin' ? (
+                <button
+                  type="button"
+                  onClick={() => { logout(); setMobileMenuOpen(false); }}
+                  className="px-3 py-2 rounded-theme text-sm font-medium text-status-danger hover:bg-surface-subtle flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Đăng xuất ({user.name})</span>
+                </button>
+              ) : (!isAuthenticated || !user) && (
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
