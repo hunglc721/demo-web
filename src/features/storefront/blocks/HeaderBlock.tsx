@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Search, Sun, Moon, Sparkles, X, Menu, Shield } from 'lucide-react';
+import { ShoppingBag, Search, Sun, Moon, Sparkles, X, Menu, Shield, LogIn } from 'lucide-react';
 import { defaultAppConfig } from '@/config/appConfig';
 import { useThemeStore } from '@/stores/themeStore';
 import { useCartStore } from '@/stores/cartStore';
@@ -30,7 +30,7 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
 
   const { mode, toggleMode } = useThemeStore();
   const { getTotalItems, openCart } = useCartStore();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
   const cartCount = getTotalItems();
@@ -279,6 +279,15 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
                   <span>Admin</span>
                 </Link>
               )}
+              {!isAuthenticated && (
+                <Link
+                  to="/login"
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-theme text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Đăng nhập</span>
+                </Link>
+              )}
 
               {/* Cart Button with live Badge */}
               <button
@@ -337,6 +346,16 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
                 >
                   <Shield className="w-4 h-4" />
                   <span>Trang quản trị Admin</span>
+                </Link>
+              )}
+              {!isAuthenticated && (
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-theme text-sm font-semibold text-primary hover:bg-surface-subtle flex items-center gap-2"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Đăng nhập</span>
                 </Link>
               )}
             </nav>
