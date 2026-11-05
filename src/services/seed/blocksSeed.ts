@@ -1,0 +1,200 @@
+import { StorefrontBlockConfig } from '@/types/block';
+
+export const defaultStorefrontBlocks: StorefrontBlockConfig[] = [
+  {
+    id: 'block_hero_banner',
+    type: 'hero_banner',
+    enabled: true,
+    order: 1,
+    settings: {
+      tag: 'Nền Tảng E-Commerce D2C Khởi Nghiệp',
+      title: 'Xây Dựng Thương Hiệu Độc Lập — Tự Do Tăng Trưởng Doanh Thu',
+      subtitle: 'Nền tảng bán hàng trực tiếp D2C đột phá doanh thu. Trải nghiệm mua sắm mượt mà, độc lập hoàn toàn khỏi sàn.',
+      ctaText: 'Khám Phá Ngay',
+      ctaLink: '/catalog',
+      secondaryCtaText: 'Vào Quản Trị Admin',
+      secondaryCtaLink: '/admin/dashboard',
+      backgroundImage: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80',
+    },
+  },
+  {
+    id: 'block_value_props',
+    type: 'value_propositions',
+    enabled: true,
+    order: 2,
+    settings: {
+      items: [
+        {
+          icon: 'Truck',
+          title: 'Miễn Phí Vận Chuyển',
+          description: 'Đơn từ 299K giao tận nơi toàn quốc nhanh chóng.',
+        },
+        {
+          icon: 'RotateCcw',
+          title: 'Đổi Trả 30 Ngày',
+          description: 'Hỗ trợ đổi trả miễn phí trong 30 ngày.',
+        },
+        {
+          icon: 'Zap',
+          title: 'Giao Hàng Siêu Tốc',
+          description: 'Giao hỏa tốc 2h nội thành và 24h toàn quốc.',
+        },
+        {
+          icon: 'Headphones',
+          title: 'Hỗ Trợ 24/7',
+          description: 'Tư vấn nhiệt tình và hỗ trợ đổi trả 24/7.',
+        },
+      ],
+    },
+  },
+  {
+    id: 'block_flash_sale',
+    type: 'flash_sale',
+    enabled: true,
+    order: 3,
+    settings: {
+      title: 'Giờ Vàng Giá Sốc',
+      subtitle: 'Cơ hội săn deal hot giảm giá sâu lên tới 50% chỉ trong hôm nay',
+      durationHours: 12,
+      productIds: ['prod_09', 'prod_15', 'prod_20'],
+      badgeText: 'Giảm tới 35%',
+    },
+  },
+  {
+    id: 'block_category_showcase',
+    type: 'category_showcase',
+    enabled: true,
+    order: 4,
+    settings: {
+      title: 'Danh Mục Nổi Bật',
+      subtitle: 'Khám phá các bộ sưu tập được ưa chuộng nhất của D2C Store',
+      categories: [
+        {
+          id: 'thoi-trang-nam',
+          name: 'Thời Trang Nam',
+          slug: 'thoi-trang-nam',
+          icon: 'Shirt',
+          image: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=600&q=80',
+          count: 6,
+        },
+        {
+          id: 'thoi-trang-nu',
+          name: 'Thời Trang Nữ',
+          slug: 'thoi-trang-nu',
+          icon: 'Sparkles',
+          image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80',
+          count: 6,
+        },
+        {
+          id: 'phu-kien',
+          name: 'Phụ Kiện Cao Cấp',
+          slug: 'phu-kien',
+          icon: 'Watch',
+          image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=600&q=80',
+          count: 5,
+        },
+        {
+          id: 'my-pham',
+          name: 'Chăm Sóc & Mỹ Phẩm',
+          slug: 'my-pham',
+          icon: 'Heart',
+          image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=600&q=80',
+          count: 4,
+        },
+      ],
+    },
+  },
+  {
+    id: 'block_featured_products',
+    type: 'featured_products',
+    enabled: true,
+    order: 5,
+    settings: {
+      title: 'Sản Phẩm Đang Được Yêu Thích',
+      subtitle: 'Top sản phẩm được mua nhiều nhất tuần này',
+      tabs: [
+        { id: 'all', title: 'Tất cả' },
+        { id: 'best-seller', title: 'Bán chạy nhất' },
+        { id: 'new', title: 'Hàng mới về' },
+        { id: 'sale', title: 'Đang giảm giá' },
+      ],
+      limit: 8,
+    },
+  },
+  {
+    id: 'block_promo_banner',
+    type: 'promo_banner',
+    enabled: true,
+    order: 6,
+    settings: {
+      title: 'Gia Nhập Cộng Đồng D2C Starter — Nhận Ngay Voucher 50K',
+      description: 'Nhập mã CHAOBAN khi thanh toán đơn hàng đầu tiên từ 100K.',
+      couponCode: 'CHAOBAN',
+      buttonText: 'Sao Chép Mã',
+      bgGradient: 'from-primary/20 via-primary/10 to-transparent',
+    },
+  },
+  {
+    id: 'block_brand_story',
+    type: 'brand_story',
+    enabled: true,
+    order: 7,
+    settings: {
+      tag: 'Câu Chuyện Thương Hiệu',
+      title: 'Từ Xưởng Sản Xuất Đến Thẳng Tủ Đồ Của Bạn',
+      content:
+        'Chúng tôi cắt giảm toàn bộ chi phí trung gian của các sàn thương mại điện tử để mang lại sản phẩm chất lượng cao với mức giá chân thật nhất. Từng đường kim mũi chỉ đều được kiểm định nghiêm ngặt.',
+      image: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=800&q=80',
+      stats: [
+        { label: 'Khách hàng hài lòng', value: '15.000+' },
+        { label: 'Sản phẩm bán ra', value: '50.000+' },
+        { label: 'Đánh giá 5 sao', value: '98.5%' },
+      ],
+    },
+  },
+  {
+    id: 'block_testimonials',
+    type: 'testimonials',
+    enabled: true,
+    order: 8,
+    settings: {
+      title: 'Khách Hàng Nói Gì Về Chúng Tôi',
+      subtitle: 'Hơn 15.000 khách hàng đã tin tưởng lựa chọn sản phẩm D2C',
+      items: [
+        {
+          name: 'Trần Tuấn Anh',
+          role: 'Doanh nhân / Khách VIP',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+          rating: 5,
+          comment: 'Chất vải polo pique cực kỳ dày dặn và đứng phom. Giao hàng hoả tốc Landmark 81 chỉ trong 2 tiếng!',
+        },
+        {
+          name: 'Đặng Thu Hương',
+          role: 'Trưởng phòng Marketing',
+          avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
+          rating: 5,
+          comment: 'Váy linen mặc rất nhẹ và mát, đường may chuẩn chỉ không có chỉ thừa. Sẽ tiếp tục ủng hộ shop.',
+        },
+        {
+          name: 'Vũ Minh Trí',
+          role: 'Lập trình viên',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+          rating: 5,
+          comment: 'Ví da bò sáp cầm chắc tay, đóng hộp sang trọng rất thích hợp làm quà tặng. Vote 5 sao!',
+        },
+      ],
+    },
+  },
+  {
+    id: 'block_newsletter',
+    type: 'newsletter',
+    enabled: true,
+    order: 9,
+    settings: {
+      title: 'Đăng Ký Nhận Bản Tin Ưu Đãi',
+      subtitle: 'Nhận thông tin bộ sưu tập mới và các mã giảm giá bí mật độc quyền hàng tuần.',
+      placeholder: 'Nhập email của bạn...',
+      buttonText: 'Đăng Ký Ngay',
+    },
+  },
+];

@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Default: Emerald Preset (Eco / Organic / Cosmetic / Modern Retail) */
+  --color-primary: 5 150 105;          /* #059669 */
+  --color-primary-hover: 4 120 87;      /* #047857 */
+  --color-primary-light: 209 250 229;   /* #d1fae5 */
+  --color-primary-subtle: 236 253 245;  /* #ecfdf5 */
+
+  /* Light Surface & Content */
+  --color-bg-base: 248 250 252;        /* slate-50 */
+  --color-bg-card: 255 255 255;        /* white */
+  --color-bg-subtle: 241 245 249;      /* slate-100 */
+  --color-bg-overlay: 15 23 42;        /* slate-900 / alpha */
+
+  --color-text-main: 15 23 42;         /* slate-900 */
+  --color-text-muted: 100 116 139;     /* slate-500 */
+  --color-text-subtle: 148 163 184;    /* slate-400 */
+  --color-text-inverse: 255 255 255;   /* white */
+
+  --color-border-base: 226 232 240;    /* slate-200 */
+  --color-border-subtle: 241 245 249;  /* slate-100 */
+  --color-border-focus: 5 150 105;
+
+  /* Status Tokens */
+  --color-status-success: 16 185 129;  /* emerald-500 */
+  --color-status-warning: 245 158 11;  /* amber-500 */
+  --color-status-danger: 239 68 68;    /* red-500 */
+  --color-status-info: 59 130 246;     /* blue-500 */
+
+  --radius-theme: 0.5rem;              /* 8px default */
+}
+
+/* Dark Mode Overrides */
+.dark {
+  --color-bg-base: 15 23 42;          /* slate-900 */
+  --color-bg-card: 30 41 59;          /* slate-800 */
+  --color-bg-subtle: 51 65 85;         /* slate-700 */
+  --color-bg-overlay: 2 6 23;          /* slate-950 */
+
+  --color-text-main: 248 250 252;      /* slate-50 */
+  --color-text-muted: 148 163 184;     /* slate-400 */
+  --color-text-subtle: 100 116 139;    /* slate-500 */
+  --color-text-inverse: 15 23 42;
+
+  --color-border-base: 51 65 85;       /* slate-700 */
+  --color-border-subtle: 30 41 59;     /* slate-800 */
+}
+
+/* Preset: Emerald */
+[data-theme-preset="emerald"] {
+  --color-primary: 5 150 105;
+  --color-primary-hover: 4 120 87;
+  --color-primary-light: 209 250 229;
+  --color-primary-subtle: 236 253 245;
+  --color-border-focus: 5 150 105;
+}
+
+/* Preset: Indigo */
+[data-theme-preset="indigo"] {
+  --color-primary: 79 70 229;
+  --color-primary-hover: 67 56 202;
+  --color-primary-light: 224 231 255;
+  --color-primary-subtle: 238 242 255;
+  --color-border-focus: 79 70 229;
+}
+
+/* Preset: Rose */
+[data-theme-preset="rose"] {
+  --color-primary: 225 29 72;
+  --color-primary-hover: 190 18 60;
+  --color-primary-light: 254 205 211;
+  --color-primary-subtle: 255 241 242;
+  --color-border-focus: 225 29 72;
+}
+
+/* Preset: Amber */
+[data-theme-preset="amber"] {
+  --color-primary: 217 119 6;
+  --color-primary-hover: 180 83 9;
+  --color-primary-light: 254 243 199;
+  --color-primary-subtle: 255 251 235;
+  --color-border-focus: 217 119 6;
+}
+
+/* Preset: Slate */
+[data-theme-preset="slate"] {
+  --color-primary: 71 85 105;
+  --color-primary-hover: 51 65 85;
+  --color-primary-light: 226 232 240;
+  --color-primary-subtle: 241 245 249;
+  --color-border-focus: 71 85 105;
+}
+
+/* Corner Radius Presets */
+[data-radius="none"] { --radius-theme: 0px; }
+[data-radius="sm"] { --radius-theme: 0.25rem; }
+[data-radius="md"] { --radius-theme: 0.5rem; }
+[data-radius="lg"] { --radius-theme: 0.75rem; }
+[data-radius="full"] { --radius-theme: 9999px; }
+
+/* Custom smooth scroll and utility styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
