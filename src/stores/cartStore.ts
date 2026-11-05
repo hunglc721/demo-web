@@ -20,6 +20,7 @@ interface CartState {
   isOpen: boolean;
   couponCode: string;
   couponDiscount: number;
+  note?: string;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -29,6 +30,7 @@ interface CartState {
   clearCart: () => void;
   setCouponCode: (code: string) => void;
   setCouponDiscount: (amount: number) => void;
+  setNote: (note: string) => void;
   getTotalItems: () => number;
   getSubtotal: () => number;
 }
@@ -38,6 +40,7 @@ export const useCartStore = create<CartState>()(persist((set, get) => ({
   isOpen: false,
   couponCode: '',
   couponDiscount: 0,
+  note: '',
 
   openCart: () => set({ isOpen: true }),
   closeCart: () => set({ isOpen: false }),
@@ -83,13 +86,14 @@ export const useCartStore = create<CartState>()(persist((set, get) => ({
     });
   },
 
-  clearCart: () => set({ items: [], couponCode: '', couponDiscount: 0 }),
+  clearCart: () => set({ items: [], couponCode: '', couponDiscount: 0, note: '' }),
   setCouponCode: (couponCode) => set({ couponCode }),
   setCouponDiscount: (couponDiscount) => set({ couponDiscount }),
+  setNote: (note) => set({ note }),
 
   getTotalItems: () => get().items.reduce((sum, item) => sum + item.quantity, 0),
   getSubtotal: () => get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
 }), {
   name: 'd2c_ecommerce:cart:v1',
-  partialize: ({ items, couponCode, couponDiscount }) => ({ items, couponCode, couponDiscount }) as CartState,
+  partialize: ({ items, couponCode, couponDiscount, note }) => ({ items, couponCode, couponDiscount, note }) as CartState,
 }));

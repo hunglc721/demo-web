@@ -6,6 +6,14 @@ import { productService } from '../../../src/services/api/productService.ts';
 import { orderService } from '../../../src/services/api/orderService.ts';
 import { couponService } from '../../../src/services/api/couponService.ts';
 import { mockEngine } from '../../../src/services/mock/mockEngine.ts';
+import { SHIPPING_CONFIG, calculateShippingFee } from '../../../src/config/shipping.ts';
+import { checkoutFormSchema } from '../../../src/features/checkout/schemas/checkoutSchema.ts';
+import {
+  VIETNAM_63_PROVINCES,
+  getVietnam63Provinces,
+  getDistrictsByProvince,
+  getWardsByDistrict,
+} from '../../../src/features/checkout/data/vietnamAddressData.ts';
 import { readFileSync } from 'node:fs';
 
 const checkoutDetails = {
@@ -146,4 +154,70 @@ describe('M6 Checkout and Cart Workflows', () => {
     assertEqual(created.paymentDetails.accountName, 'D2C STORE VIETNAM');
     assert(created.orderNumber.length > 0, 'Order number is generated for the transfer note');
   });
+
+  test('M6-74: cartStore note and setNote persistence and clearing on clearCart', () => {
+    const cart = useCartStore.getState();
+    cart.setNote('Giao giờ hành chính');
+    assertEqual(useCartStore.getState().note, 'Giao giờ hành chính');
+    cart.clearCart();
+    assertEqual(useCartStore.getState().note, '');
+  });
+
+  test('M6-75: centralized shipping configuration threshold 299,000 and fee 30,000', () => {
+    assertEqual(SHIPPING_CONFIG.freeShippingThreshold, 299000);
+    assertEqual(SHIPPING_CONFIG.standardShippingFee, 30000);
+    assertEqual(calculateShippingFee(0), 30000);
+    assertEqual(calculateShippingFee(298000), 30000);
+    assertEqual(calculateShippingFee(299000), 0);
+    assertEqual(calculateShippingFee(500000), 0);
+  });
+
+  test('M6-76: checkoutSchema validates Vietnamese phone numbers correctly and rejects invalid formats', () => {
+    const validData = {
+      receiverName: 'Nguyễn Văn An',
+      phone: '0912345678',
+      email: 'an@example.com',
+      province: 'TP. Hồ Chí Minh',
+      district: 'Quận 1',
+      ward: 'Phường Bến Nghé',
+      street: '12 Nguyễn Huệ',
+      paymentMethod: 'cod',
+      note: 'Giao nhanh',
+    };
+    const validResult = checkoutFormSchema.safeParse(validData);
+    assert(validResult.success, 'Valid checkout data should pass Zod validation');
+
+    const invalidPhoneResult = checkoutFormSchema.safeParse({ ...validData, phone: '0123456789' });
+    assertEqual(invalidPhoneResult.success, false);
+
+    const landlineResult = checkoutFormSchema.safeParse({ ...validData, phone: '0243888888' });
+    assertEqual(landlineResult.success, false);
+  });
+
+  test('M6-77: vietnamAddressData contains all 63 provinces with cascading districts and wards', () => {
+    const provinces = getVietnam63Provinces();
+    assertEqual(provinces.length, 63);
+    assertEqual(VIETNAM_63_PROVINCES.length, 63);
+
+    const hcmDistricts = getDistrictsByProvince('TP. Hồ Chí Minh');
+    assert(hcmDistricts.includes('Quận 1'), 'TP. Hồ Chí Minh must contain Quận 1');
+    assert(hcmDistricts.includes('Quận Bình Thạnh'), 'TP. Hồ Chí Minh must contain Quận Bình Thạnh');
+
+    const q1Wards = getWardsByDistrict('TP. Hồ Chí Minh', 'Quận 1');
+    assert(q1Wards.includes('Phường Bến Nghé'), 'Quận 1 must contain Phường Bến Nghé');
+  });
+
+  test('M6-78: MoMo and Credit Card payment methods create orders with proper payment details and status', async () => {
+    const momoOrder = await createCheckoutOrder([item()], { ...checkoutDetails, paymentMethod: 'momo' });
+    assertEqual(momoOrder.paymentMethod, 'momo');
+    assertEqual(momoOrder.paymentStatus, 'pending');
+    assertEqual(momoOrder.paymentDetails.bankName, 'MoMo');
+    assertEqual(momoOrder.paymentDetails.accountNumber, '0918889999');
+
+    const cardOrder = await createCheckoutOrder([item()], { ...checkoutDetails, paymentMethod: 'card' });
+    assertEqual(cardOrder.paymentMethod, 'card');
+    assertEqual(cardOrder.paymentStatus, 'paid');
+    assert(cardOrder.paymentDetails.transactionId.startsWith('TX_'), 'Card order has transactionId');
+  });
 });
+

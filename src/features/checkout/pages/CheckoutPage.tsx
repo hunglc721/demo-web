@@ -1,70 +1,108 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowLeft, LoaderCircle, ShieldCheck, Truck } from 'lucide-react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  ArrowLeft,
+  ChevronRight,
+  Home,
+  LoaderCircle,
+  Lock,
+  ShieldCheck,
+  ShoppingBag,
+  Truck,
+} from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
-import { PaymentMethod } from '@/types';
-import { createCheckoutOrder } from '../services/checkoutService';
-import { loadVietnamLocations } from '../data/vietnamLocations';
-import type { VietnamDivision } from '../data/vietnamLocations';
+import { SHIPPING_CONFIG, calculateShippingFee } from '@/config/shipping';
 import { formatCurrencyVND } from '@/utils/formatters';
 import { toast } from '@/stores/toastStore';
-
-const SHIPPING_FEE = 30000;
-const FREE_SHIPPING_THRESHOLD = 299000;
-
-const schema = z.object({
-  receiverName: z.string().trim().min(2, 'Nhập tên người nhận.'),
-  phone: z.string().trim().regex(/^(\+?84|0)[0-9]{9,10}$/, 'Số điện thoại chưa đúng.'),
-  email: z.string().trim().email('Email chưa đúng.').or(z.literal('')),
-  street: z.string().trim().min(5, 'Nhập số nhà và tên đường.'),
-  province: z.string().min(1, 'Chọn tỉnh/thành.'),
-  ward: z.string().min(1, 'Chọn phường/xã.'),
-  paymentMethod: z.enum(['cod', 'vietqr']),
-  note: z.string().max(300, 'Ghi chú tối đa 300 ký tự.'),
-});
-type CheckoutForm = z.infer<typeof schema>;
+import { createCheckoutOrder } from '../services/checkoutService';
+import { checkoutFormSchema, CheckoutFormData } from '../schemas/checkoutSchema';
+import { VietnamAddressCascader } from '../components/VietnamAddressCascader';
+import { PaymentMethodSelector } from '../components/PaymentMethodSelector';
+import { VietQRModal } from '../components/VietQRModal';
 
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { items, couponCode, couponDiscount, clearCart, setCouponCode, setCouponDiscount } = useCartStore();
+  const {
+    items,
+    couponCode,
+    couponDiscount,
+    clearCart,
+    setCouponCode,
+    setCouponDiscount,
+    note: storeNote,
+  } = useCartStore();
+
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
-  const [provinces, setProvinces] = useState<VietnamDivision[]>([]);
-  const [allWards, setAllWards] = useState<VietnamDivision[]>([]);
-  const [locationError, setLocationError] = useState('');
-  const cartNote = (location.state as { note?: string } | null)?.note || '';
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<CheckoutForm>({
-    resolver: zodResolver(schema),
-    defaultValues: { receiverName: '', phone: '', email: '', street: '', province: '', ward: '', paymentMethod: 'cod', note: cartNote },
+  const [isVietQRPreviewOpen, setIsVietQRPreviewOpen] = useState(false);
+  const isSubmittingRef = useRef(false);
+
+  // Prepopulate note from router state or cartStore
+  const initialNote = (location.state as { note?: string } | null)?.note || storeNote || '';
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<CheckoutFormData>({
+    resolver: zodResolver(checkoutFormSchema),
+    defaultValues: {
+      receiverName: '',
+      phone: '',
+      email: '',
+      province: '',
+      district: '',
+      ward: '',
+      street: '',
+      paymentMethod: 'cod',
+      note: initialNote,
+    },
+    mode: 'onTouched',
   });
-  const province = watch('province');
-  const wards = useMemo(() => allWards.filter(ward => ward.parent?.name.local === province), [allWards, province]);
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
 
-  React.useEffect(() => {
-    loadVietnamLocations().then(data => {
-      setProvinces(data.provinces);
-      setAllWards(data.wards);
-    }).catch(() => setLocationError('Không tải được danh mục tỉnh/thành và xã/phường. Hãy tải lại trang.'));
-  }, []);
+  const watchedProvince = watch('province');
+  const watchedDistrict = watch('district');
+  const watchedWard = watch('ward');
+  const watchedStreet = watch('street');
+  const watchedPaymentMethod = watch('paymentMethod');
 
-  const submit = async (values: CheckoutForm) => {
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items]
+  );
+  const shippingFee = calculateShippingFee(subtotal);
+  const grandTotal = Math.max(0, subtotal + shippingFee - couponDiscount);
+
+  // Empty cart protection & automatic redirect
+  useEffect(() => {
+    if (items.length === 0 && !isSubmittingRef.current) {
+      toast.info('Giỏ hàng trống. Vui lòng chọn sản phẩm trước khi thanh toán.');
+      navigate('/cart', { replace: true });
+    }
+  }, [items.length, navigate]);
+
+  const onSubmit = async (values: CheckoutFormData) => {
     if (!items.length || submitting) return;
     setSubmitting(true);
+    isSubmittingRef.current = true;
     setFormError('');
+
     try {
-      const created = await createCheckoutOrder(items, { ...values, paymentMethod: values.paymentMethod as PaymentMethod }, couponCode);
+      const created = await createCheckoutOrder(items, values, couponCode);
       clearCart();
       setCouponCode('');
       setCouponDiscount(0);
+      toast.success('Đặt hàng thành công! Đang chuyển hướng...');
       navigate(`/order-success/${created.id}`, { replace: true });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Đặt hàng chưa thành công. Thử lại nhé.';
+      isSubmittingRef.current = false;
+      const message =
+        error instanceof Error ? error.message : 'Đặt hàng chưa thành công. Vui lòng thử lại.';
       setFormError(message);
       toast.error(message);
     } finally {
@@ -72,30 +110,327 @@ export const CheckoutPage: React.FC = () => {
     }
   };
 
-  if (!items.length) return <div className="mx-auto max-w-xl px-4 py-16 text-center"><h1 className="text-xl font-bold">Chưa có sản phẩm để thanh toán</h1><Link to="/catalog" className="mt-4 inline-block text-primary">Quay lại mua sắm</Link></div>;
+  if (!items.length) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-20 text-center">
+        <ShoppingBag className="mx-auto h-12 w-12 text-content-muted mb-3" />
+        <h1 className="text-xl font-bold text-content-main">Chưa có sản phẩm để thanh toán</h1>
+        <p className="mt-1 text-xs text-content-muted">Đang chuyển bạn về giỏ hàng...</p>
+        <Link
+          to="/cart"
+          className="mt-4 inline-flex items-center gap-1.5 rounded-theme bg-primary px-4 py-2 text-xs font-semibold text-white"
+        >
+          Quay lại giỏ hàng
+        </Link>
+      </div>
+    );
+  }
 
-  return <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
-    <div className="text-center"><h1 className="text-2xl font-bold text-content-main">Thanh toán đơn hàng</h1><p className="mt-2 text-sm text-content-muted">Điền thông tin nhận hàng và chọn phương thức thanh toán.</p></div>
-    {formError && <p role="alert" className="rounded border border-status-danger/30 bg-status-danger/10 p-3 text-sm text-status-danger">{formError}</p>}
-    <form onSubmit={handleSubmit(submit)} className="grid gap-6 lg:grid-cols-3">
-      <section className="space-y-6 rounded-theme border border-border-base bg-surface-card p-6 lg:col-span-2">
-        <div className="space-y-4"><h2 className="flex items-center gap-2 font-bold"><Truck className="h-4 w-4 text-primary" /> Thông tin nhận hàng</h2><div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Họ và tên" error={errors.receiverName?.message}><input {...register('receiverName')} autoComplete="name" placeholder="Nguyễn Văn A" className={inputClass} /></Field>
-          <Field label="Số điện thoại" error={errors.phone?.message}><input {...register('phone')} autoComplete="tel" placeholder="09xxxxxxxx" className={inputClass} /></Field>
-          <Field label="Email (không bắt buộc)" error={errors.email?.message}><input {...register('email')} autoComplete="email" placeholder="ban@email.com" className={inputClass} /></Field>
-          <Field label="Tỉnh / Thành phố" error={errors.province?.message}><select {...register('province', { onChange: () => setValue('ward', '') })} disabled={!provinces.length} className={inputClass}><option value="">Chọn tỉnh/thành</option>{provinces.map(region => <option key={region.id} value={region.name.local}>{region.name.local}</option>)}</select></Field>
-          <Field label="Xã / Phường" error={errors.ward?.message}><select {...register('ward')} disabled={!province || !wards.length} className={inputClass}><option value="">Chọn xã/phường</option>{wards.map(ward => <option key={ward.id} value={ward.name.local}>{ward.name.local}</option>)}</select></Field>
-          {locationError && <p role="alert" className="text-xs text-status-danger sm:col-span-2">{locationError}</p>}
-          <Field label="Số nhà, tên đường" error={errors.street?.message} className="sm:col-span-2"><input {...register('street')} autoComplete="street-address" placeholder="Số nhà, tên đường" className={inputClass} /></Field>
-          <Field label="Ghi chú" error={errors.note?.message} className="sm:col-span-2"><textarea {...register('note')} rows={2} placeholder="Lời nhắn cho cửa hàng" className={inputClass} /></Field>
-        </div></div>
-        <div className="space-y-3 border-t border-border-base pt-5"><h2 className="flex items-center gap-2 font-bold"><ShieldCheck className="h-4 w-4 text-primary" /> Phương thức thanh toán</h2><label className="flex cursor-pointer items-center gap-3 rounded border border-border-base p-3 text-sm"><input type="radio" value="cod" {...register('paymentMethod')} /> Thanh toán khi nhận hàng (COD)</label><label className="flex cursor-pointer items-center gap-3 rounded border border-border-base p-3 text-sm"><input type="radio" value="vietqr" {...register('paymentMethod')} /> Chuyển khoản VietQR (mã demo)</label></div>
-      </section>
-      <aside className="h-fit space-y-4 rounded-theme border border-border-base bg-surface-card p-5"><h2 className="font-bold">Đơn hàng ({items.length})</h2><div className="max-h-64 space-y-3 overflow-auto">{items.map(item => <div key={item.id} className="flex justify-between gap-3 text-sm"><span className="text-content-muted">{item.title}{item.variantName && ` · ${item.variantName}`} × {item.quantity}</span><span className="whitespace-nowrap font-medium">{formatCurrencyVND(item.price * item.quantity)}</span></div>)}</div><div className="space-y-2 border-t border-border-base pt-3 text-sm"><div className="flex justify-between"><span>Tạm tính</span><span>{formatCurrencyVND(subtotal)}</span></div><div className="flex justify-between"><span>Vận chuyển</span><span>{shippingFee ? formatCurrencyVND(shippingFee) : 'Miễn phí'}</span></div>{couponCode && couponDiscount > 0 && <div className="flex justify-between text-status-success"><span>Giảm giá ({couponCode})</span><span>-{formatCurrencyVND(couponDiscount)}</span></div>}<div className="flex justify-between border-t border-border-base pt-3 text-base font-bold"><span>Tổng cộng</span><span>{formatCurrencyVND(Math.max(0, subtotal + shippingFee - couponDiscount))}</span></div></div><button type="submit" disabled={submitting} className="flex w-full items-center justify-center gap-2 rounded-theme bg-primary px-4 py-3 font-bold text-white disabled:opacity-60">{submitting ? <><LoaderCircle className="h-4 w-4 animate-spin" /> Đang tạo đơn...</> : 'Đặt hàng'}</button><Link to="/cart" className="flex items-center justify-center gap-1 text-xs text-content-muted"><ArrowLeft className="h-3 w-3" /> Quay lại giỏ hàng</Link></aside>
-    </form>
-  </div>;
+  const inputClass =
+    'w-full rounded-theme border border-border-base bg-surface-subtle px-3 py-2 text-xs sm:text-sm text-content-main outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-50 transition-all';
+
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 space-y-6">
+      {/* 1. Breadcrumbs */}
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-content-muted">
+        <Link to="/" className="flex items-center gap-1 hover:text-primary transition-colors">
+          <Home className="h-3.5 w-3.5" />
+          <span>Trang chủ</span>
+        </Link>
+        <ChevronRight className="h-3 w-3" />
+        <Link to="/cart" className="hover:text-primary transition-colors">
+          Giỏ hàng
+        </Link>
+        <ChevronRight className="h-3 w-3" />
+        <span className="font-semibold text-content-main">Thanh toán</span>
+      </nav>
+
+      {/* 2. Page Title */}
+      <div className="border-b border-border-base pb-3">
+        <h1 className="text-2xl font-bold text-content-main flex items-center gap-2">
+          <span>Thông tin đặt hàng & Thanh toán</span>
+        </h1>
+        <p className="text-xs text-content-muted mt-1">
+          Hoàn tất các bước dưới đây để đặt hàng nhanh chóng.
+        </p>
+      </div>
+
+      {formError && (
+        <div
+          role="alert"
+          className="rounded-theme border border-status-danger/30 bg-status-danger/10 p-3.5 text-xs sm:text-sm text-status-danger font-medium"
+        >
+          {formError}
+        </div>
+      )}
+
+      {/* 3. Main Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-3">
+        {/* Left Column (2 cols): Customer info, VN Address cascader, Payment method */}
+        <div className="space-y-6 rounded-theme border border-border-base bg-surface-card p-5 sm:p-6 lg:col-span-2 shadow-xs">
+          {/* Section 1: Customer Contact Info */}
+          <div className="space-y-4">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-content-main border-b border-border-base pb-2">
+              <Truck className="h-4 w-4 text-primary" />
+              <span>1. Thông tin người nhận hàng</span>
+            </h2>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-content-main">
+                  Họ và tên người nhận <span className="text-status-danger">*</span>
+                </label>
+                <input
+                  {...register('receiverName')}
+                  autoComplete="name"
+                  placeholder="Nguyễn Văn A"
+                  className={`${inputClass} ${errors.receiverName ? 'border-status-danger' : ''}`}
+                />
+                {errors.receiverName && (
+                  <p role="alert" className="text-[11px] text-status-danger">
+                    {errors.receiverName.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-content-main">
+                  Số điện thoại <span className="text-status-danger">*</span>
+                </label>
+                <input
+                  {...register('phone')}
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="0912345678"
+                  className={`${inputClass} ${errors.phone ? 'border-status-danger' : ''}`}
+                />
+                {errors.phone && (
+                  <p role="alert" className="text-[11px] text-status-danger">
+                    {errors.phone.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <label className="block text-xs font-semibold text-content-main">
+                  Email (nhận hóa đơn điện tử & cập nhật đơn hàng)
+                </label>
+                <input
+                  {...register('email')}
+                  type="email"
+                  autoComplete="email"
+                  placeholder="email@example.com (không bắt buộc)"
+                  className={`${inputClass} ${errors.email ? 'border-status-danger' : ''}`}
+                />
+                {errors.email && (
+                  <p role="alert" className="text-[11px] text-status-danger">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Shipping Address Hierarchy */}
+          <div className="space-y-4 pt-2">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-content-main border-b border-border-base pb-2">
+              <span>2. Địa chỉ nhận hàng</span>
+            </h2>
+
+            {/* Cascader: Province -> District -> Ward */}
+            <VietnamAddressCascader
+              province={watchedProvince}
+              district={watchedDistrict}
+              ward={watchedWard}
+              street={watchedStreet}
+              errors={{
+                province: errors.province?.message,
+                district: errors.district?.message,
+                ward: errors.ward?.message,
+              }}
+              onProvinceChange={(val) => {
+                setValue('province', val, { shouldValidate: true });
+                setValue('district', '');
+                setValue('ward', '');
+              }}
+              onDistrictChange={(val) => {
+                setValue('district', val, { shouldValidate: true });
+                setValue('ward', '');
+              }}
+              onWardChange={(val) => {
+                setValue('ward', val, { shouldValidate: true });
+              }}
+            />
+
+            {/* Specific street address */}
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-content-main">
+                Địa chỉ cụ thể: số nhà, tên đường, tòa nhà{' '}
+                <span className="text-status-danger">*</span>
+              </label>
+              <input
+                {...register('street')}
+                autoComplete="street-address"
+                placeholder="Ví dụ: 12 Nguyễn Huệ, Tòa nhà Vincom"
+                className={`${inputClass} ${errors.street ? 'border-status-danger' : ''}`}
+              />
+              {errors.street && (
+                <p role="alert" className="text-[11px] text-status-danger">
+                  {errors.street.message}
+                </p>
+              )}
+            </div>
+
+            {/* Order Note */}
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-semibold text-content-main">
+                  Ghi chú giao hàng (tuỳ chọn)
+                </label>
+                <span className="text-[10px] text-content-muted">Tối đa 300 ký tự</span>
+              </div>
+              <textarea
+                {...register('note')}
+                rows={2}
+                maxLength={300}
+                placeholder="Lời nhắn cho shipper hoặc cửa hàng..."
+                className={inputClass}
+              />
+              {errors.note && (
+                <p role="alert" className="text-[11px] text-status-danger">
+                  {errors.note.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Section 3: Payment Method Selector */}
+          <div className="pt-2">
+            <PaymentMethodSelector
+              value={watchedPaymentMethod}
+              onChange={(method) => setValue('paymentMethod', method, { shouldValidate: true })}
+              onPreviewVietQR={() => setIsVietQRPreviewOpen(true)}
+              error={errors.paymentMethod?.message}
+            />
+          </div>
+        </div>
+
+        {/* Right Column (1 col): Order Items Review & Financial Summary */}
+        <aside className="space-y-5">
+          <div className="sticky top-20 rounded-theme border border-border-base bg-surface-card p-5 space-y-4 shadow-xs">
+            <div className="flex items-center justify-between border-b border-border-base pb-3">
+              <h2 className="font-bold text-sm text-content-main">
+                Đơn hàng ({items.length} mặt hàng)
+              </h2>
+              <Link to="/cart" className="text-xs text-primary hover:underline">
+                Sửa
+              </Link>
+            </div>
+
+            {/* Compact items list */}
+            <div className="max-h-64 space-y-3 overflow-y-auto divide-y divide-border-base/50 pr-1">
+              {items.map((item) => (
+                <div key={item.id} className="flex gap-2.5 pt-2.5 first:pt-0 text-xs">
+                  <img
+                    src={item.image || '/placeholder.png'}
+                    alt={item.title}
+                    className="h-12 w-10 rounded object-cover bg-surface-subtle border border-border-base/40 flex-shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-1 font-semibold text-content-main">{item.title}</p>
+                    {item.variantName && (
+                      <p className="text-[11px] text-content-muted">{item.variantName}</p>
+                    )}
+                    <p className="text-[11px] text-content-muted">SL: {item.quantity}</p>
+                  </div>
+                  <span className="font-semibold text-content-main whitespace-nowrap">
+                    {formatCurrencyVND(item.price * item.quantity)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Price Calculations */}
+            <div className="space-y-2 border-t border-border-base pt-3 text-xs sm:text-sm">
+              <div className="flex justify-between text-content-muted">
+                <span>Tạm tính</span>
+                <span className="font-semibold text-content-main">
+                  {formatCurrencyVND(subtotal)}
+                </span>
+              </div>
+
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-status-success font-semibold">
+                  <span>Voucher giảm giá ({couponCode})</span>
+                  <span>-{formatCurrencyVND(couponDiscount)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-content-muted">
+                <span>Phí vận chuyển</span>
+                <span className="font-semibold text-content-main">
+                  {shippingFee === 0 ? (
+                    <span className="text-status-success font-semibold">Miễn phí</span>
+                  ) : (
+                    formatCurrencyVND(shippingFee)
+                  )}
+                </span>
+              </div>
+
+              {shippingFee === 0 && subtotal >= SHIPPING_CONFIG.freeShippingThreshold && (
+                <div className="rounded bg-status-success/10 p-2 text-[11px] text-status-success font-medium flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Đã áp dụng Miễn phí vận chuyển D2C</span>
+                </div>
+              )}
+
+              <div className="flex justify-between border-t border-border-base pt-3 text-base font-bold text-content-main">
+                <span>Tổng thanh toán</span>
+                <span className="text-lg text-primary">{formatCurrencyVND(grandTotal)}</span>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-2 rounded-theme bg-primary py-3.5 text-sm font-bold text-white hover:bg-primary-hover shadow-xs disabled:opacity-60 transition-colors"
+            >
+              {submitting ? (
+                <>
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                  <span>Đang xử lý đơn hàng...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4" />
+                  <span>Đặt hàng ({formatCurrencyVND(grandTotal)})</span>
+                </>
+              )}
+            </button>
+
+            <div className="flex items-center justify-center gap-2 text-center text-[11px] text-content-muted pt-1">
+              <Link
+                to="/cart"
+                className="inline-flex items-center gap-1 text-content-muted hover:text-primary transition-colors"
+              >
+                <ArrowLeft className="h-3 w-3" />
+                <span>Quay lại giỏ hàng</span>
+              </Link>
+            </div>
+          </div>
+        </aside>
+      </form>
+
+      {/* VietQR Preview Modal */}
+      <VietQRModal
+        isOpen={isVietQRPreviewOpen}
+        onClose={() => setIsVietQRPreviewOpen(false)}
+        orderNumber={`ORD-${new Date().getFullYear()}-DEMO`}
+        amount={grandTotal}
+      />
+    </div>
+  );
 };
 
-const inputClass = 'w-full rounded border border-border-base bg-surface-subtle px-3 py-2 text-sm text-content-main outline-none focus:border-primary disabled:opacity-50';
-const Field: React.FC<{ label: string; error?: string; className?: string; children: React.ReactNode }> = ({ label, error, className = '', children }) => <label className={`block space-y-1.5 text-xs font-medium text-content-main ${className}`}><span>{label}</span>{children}{error && <span className="block text-status-danger">{error}</span>}</label>;
 export default CheckoutPage;

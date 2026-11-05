@@ -54,9 +54,7 @@ export const ProductListPage: React.FC = () => {
   // Sync URL query param if changed
   useEffect(() => {
     const stockParam = searchParams.get('stock');
-    if (stockParam) {
-      setSelectedStockStatus(stockParam);
-    }
+    setSelectedStockStatus(stockParam || 'all');
   }, [searchParams]);
 
   // Load products and categories

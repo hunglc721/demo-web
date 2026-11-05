@@ -5,17 +5,18 @@ import { productService } from '@/services/api/productService';
 import type { Order, OrderItem, PaymentMethod } from '@/types/order';
 import type { Product } from '@/types/product';
 import type { Coupon } from '@/types/coupon';
+import { calculateShippingFee } from '@/config/shipping';
 
 export interface CheckoutDetails {
   receiverName: string;
   phone: string;
-  email: string;
+  email?: string;
   street: string;
   province: string;
   district?: string;
   ward: string;
   paymentMethod: PaymentMethod;
-  note: string;
+  note?: string;
 }
 
 export async function createCheckoutOrder(
@@ -25,7 +26,7 @@ export async function createCheckoutOrder(
 ): Promise<Order> {
   if (!items.length) throw new Error('Giỏ hàng đang trống.');
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingFee = subtotal >= 299000 ? 0 : 30000;
+  const shippingFee = calculateShippingFee(subtotal);
   const reserved = new Map<string, number>();
   const productsBefore = new Map<string, Product>();
 
@@ -62,16 +63,32 @@ export async function createCheckoutOrder(
   let createdOrder: Order | null = null;
   let couponBefore: Coupon | null = null;
   const inventoryTouched: Product[] = [];
+
+  let paymentDetails: Order['paymentDetails'] = undefined;
+  if (details.paymentMethod === 'vietqr') {
+    paymentDetails = { bankName: 'MB Bank', accountNumber: '9999888826', accountName: 'D2C STORE VIETNAM' };
+  } else if (details.paymentMethod === 'momo') {
+    paymentDetails = { bankName: 'MoMo', accountNumber: '0918889999', accountName: 'D2C STORE VIETNAM' };
+  } else if (details.paymentMethod === 'card') {
+    paymentDetails = {
+      bankName: 'Visa / MasterCard',
+      transactionId: `TX_${Date.now().toString().slice(-8)}`,
+      paidAt: new Date().toISOString(),
+    };
+  }
+
   try {
     createdOrder = await orderService.createOrder({
       customer: {
-        name: details.receiverName, phone: details.phone, email: details.email,
-      address: { id: `addr_${Date.now()}`, receiverName: details.receiverName, phone: details.phone, street: details.street, ward: details.ward, ...(details.district ? { district: details.district } : {}), province: details.province, fullAddress },
+        name: details.receiverName, phone: details.phone, email: details.email || '',
+        address: { id: `addr_${Date.now()}`, receiverName: details.receiverName, phone: details.phone, street: details.street, ward: details.ward, ...(details.district ? { district: details.district } : {}), province: details.province, fullAddress },
       },
       items: orderItems, subtotal, shippingFee, discount, couponCode: appliedCoupon,
       total: Math.max(0, subtotal + shippingFee - discount), status: 'pending',
-      paymentMethod: details.paymentMethod, paymentStatus: 'pending', notes: details.note || undefined,
-      paymentDetails: details.paymentMethod === 'vietqr' ? { bankName: 'MB Bank', accountNumber: '9999888826', accountName: 'D2C STORE VIETNAM' } : undefined,
+      paymentMethod: details.paymentMethod,
+      paymentStatus: details.paymentMethod === 'card' ? 'paid' : 'pending',
+      notes: details.note || undefined,
+      paymentDetails,
     });
 
     const productIds = [...new Set(items.map(item => item.productId))];

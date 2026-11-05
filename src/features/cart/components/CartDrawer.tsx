@@ -1,126 +1,265 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
+import { ArrowRight, ShoppingBag, X } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
 import { productService } from '@/services/api/productService';
-import { couponService } from '@/services/api/couponService';
+import { SHIPPING_CONFIG, calculateShippingFee } from '@/config/shipping';
 import { Product } from '@/types';
 import { toast } from '@/stores/toastStore';
 import { formatCurrencyVND } from '@/utils/formatters';
-
-const FREE_SHIPPING_THRESHOLD = 299000;
-const SHIPPING_FEE = 30000;
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { FreeShippingTracker } from './FreeShippingTracker';
+import { CartCouponSection } from './CartCouponSection';
+import { CartItemRow } from './CartItemRow';
 
 export const CartDrawer: React.FC = () => {
   const navigate = useNavigate();
-  const { items, isOpen, closeCart, updateQuantity, removeItem, couponCode, setCouponCode, couponDiscount, setCouponDiscount } = useCartStore();
+  const { items, isOpen, closeCart, updateQuantity, removeItem, couponDiscount } = useCartStore();
   const [suggestions, setSuggestions] = useState<Product[]>([]);
-  const [couponInput, setCouponInput] = useState(couponCode);
-  const [couponMessage, setCouponMessage] = useState('');
-  const [couponBusy, setCouponBusy] = useState(false);
-  const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.price * item.quantity, 0), [items]);
-  const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
+
+  // Prevent background scrolling while drawer is active
+  useBodyScrollLock(isOpen);
+
+  const subtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items]
+  );
+  const shippingFee = calculateShippingFee(subtotal);
+  const totalItems = useMemo(
+    () => items.reduce((sum, item) => sum + item.quantity, 0),
+    [items]
+  );
 
   useEffect(() => {
     if (!isOpen || items.length) return;
-    productService.getFeaturedProducts(4).then(setSuggestions).catch(() => setSuggestions([]));
+    productService
+      .getFeaturedProducts(4)
+      .then(setSuggestions)
+      .catch(() => setSuggestions([]));
   }, [isOpen, items.length]);
 
   useEffect(() => {
     if (!isOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') closeCart(); };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeCart();
+    };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, closeCart]);
 
-  useEffect(() => {
-    setCouponInput(couponCode);
-    setCouponMessage('');
-  }, [couponCode]);
-
-  useEffect(() => {
-    if (!couponCode) {
-      setCouponDiscount(0);
-      return;
-    }
-    let active = true;
-    couponService.validateCoupon(couponCode, subtotal, SHIPPING_FEE).then(result => {
-      if (active) setCouponDiscount(result.isValid ? result.discountAmount : 0);
-    }).catch(() => { if (active) setCouponDiscount(0); });
-    return () => { active = false; };
-  }, [couponCode, subtotal, setCouponDiscount]);
-
-  const applyCoupon = async () => {
-    if (!couponInput.trim()) {
-      setCouponCode('');
-      setCouponDiscount(0);
-      setCouponMessage('Đã bỏ mã giảm giá.');
-      return;
-    }
-    setCouponBusy(true);
-    try {
-      const result = await couponService.validateCoupon(couponInput, subtotal, SHIPPING_FEE);
-      setCouponMessage(result.message);
-      setCouponDiscount(result.isValid ? result.discountAmount : 0);
-      if (result.isValid) {
-        setCouponCode(result.coupon?.code || couponInput.trim().toUpperCase());
-        toast.success('Đã áp dụng mã giảm giá.');
-      } else {
-        setCouponCode(couponInput.trim().toUpperCase());
-      }
-    } catch {
-      setCouponMessage('Chưa kiểm tra được mã, thử lại nhé.');
-      setCouponDiscount(0);
-    } finally {
-      setCouponBusy(false);
-    }
+  const handleAddSuggestion = (product: Product) => {
+    const variant = product.variants?.find((v) => v.stock > 0);
+    const variantTitle = variant?.title || (variant?.options ? Object.values(variant.options).join(' / ') : undefined);
+    useCartStore.getState().addItem({
+      productId: product.id,
+      variantId: variant?.id,
+      variantName: variantTitle,
+      title: product.name,
+      price: variant?.price ?? product.price,
+      originalPrice: product.compareAtPrice ?? product.originalPrice,
+      quantity: 1,
+      image: product.images[0] || '',
+      sku: variant?.sku || product.sku,
+      stock: variant?.stock ?? product.stock,
+    });
+    toast.success(`Đã thêm ${product.name} vào giỏ hàng.`);
   };
 
-  const goToCheckout = () => {
+  const handleGoToCheckout = () => {
     closeCart();
     navigate('/checkout');
+  };
+
+  const handleGoToCart = () => {
+    closeCart();
+    navigate('/cart');
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[70]" role="presentation">
-      <button aria-label="Đóng giỏ hàng" className="absolute inset-0 bg-black/40" onClick={closeCart} />
-      <aside role="dialog" aria-modal="true" aria-label="Giỏ hàng" className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-surface-card shadow-2xl animate-in slide-in-from-right duration-200">
+      {/* Backdrop */}
+      <button
+        type="button"
+        aria-label="Đóng giỏ hàng"
+        className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-200"
+        onClick={closeCart}
+      />
+
+      {/* Slide-out Aside Drawer */}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Giỏ hàng"
+        className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-surface-card shadow-2xl animate-in slide-in-from-right duration-200"
+      >
+        {/* Header */}
         <header className="flex items-center justify-between border-b border-border-base px-5 py-4">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-content-main"><ShoppingBag className="h-5 w-5 text-primary" /> Giỏ hàng <span className="text-sm font-normal text-content-muted">({items.reduce((n, item) => n + item.quantity, 0)})</span></h2>
-          <button onClick={closeCart} className="rounded p-2 text-content-muted hover:bg-surface-subtle" aria-label="Đóng"><X className="h-5 w-5" /></button>
+          <h2 className="flex items-center gap-2 text-base font-bold text-content-main sm:text-lg">
+            <ShoppingBag className="h-5 w-5 text-primary" />
+            <span>Giỏ hàng</span>
+            <span className="text-xs font-normal text-content-muted">
+              ({totalItems} sản phẩm)
+            </span>
+          </h2>
+          <button
+            type="button"
+            onClick={closeCart}
+            className="rounded-theme p-1.5 text-content-muted hover:bg-surface-subtle hover:text-content-main transition-colors"
+            aria-label="Đóng"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5">
-          <div className="py-4">
-            <div className="mb-2 flex justify-between text-xs"><span className="text-content-muted">{remainingForFreeShipping ? `Mua thêm ${formatCurrencyVND(remainingForFreeShipping)} để được freeship` : 'Đơn hàng đã được miễn phí vận chuyển'}</span><span className="font-semibold text-primary">{Math.min(100, Math.round(subtotal / FREE_SHIPPING_THRESHOLD * 100))}%</span></div>
-            <div className="h-2 overflow-hidden rounded-full bg-surface-subtle"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, subtotal / FREE_SHIPPING_THRESHOLD * 100)}%` }} /></div>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-5 divide-y divide-border-base">
+          {/* Free Shipping Tracker */}
+          <div className="py-3">
+            <FreeShippingTracker
+              subtotal={subtotal}
+              threshold={SHIPPING_CONFIG.freeShippingThreshold}
+              compact
+            />
           </div>
 
-          {items.length ? <ul className="divide-y divide-border-base">
-            {items.map(item => <li key={item.id} className="flex gap-3 py-4">
-              <img src={item.image || '/placeholder.png'} alt={item.title} className="h-20 w-16 rounded object-cover bg-surface-subtle" />
-              <div className="min-w-0 flex-1">
-                <div className="flex justify-between gap-2"><p className="line-clamp-2 text-sm font-semibold text-content-main">{item.title}</p><button onClick={() => removeItem(item.id)} aria-label={`Xóa ${item.title}`} className="h-fit text-content-muted hover:text-status-danger"><Trash2 className="h-4 w-4" /></button></div>
-                {item.variantName && <p className="mt-1 text-xs text-content-muted">{item.variantName}</p>}
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center rounded border border-border-base"><button aria-label="Giảm số lượng" className="p-1.5" onClick={() => updateQuantity(item.id, item.quantity - 1)}><Minus className="h-3.5 w-3.5" /></button><span className="min-w-7 text-center text-xs">{item.quantity}</span><button aria-label="Tăng số lượng" className="p-1.5 disabled:opacity-40" disabled={item.stock !== undefined && item.quantity >= item.stock} onClick={() => updateQuantity(item.id, item.quantity + 1)}><Plus className="h-3.5 w-3.5" /></button></div>
-                  <span className="text-sm font-bold text-content-main">{formatCurrencyVND(item.price * item.quantity)}</span>
-                </div>
+          {/* Cart Items or Empty State */}
+          {items.length > 0 ? (
+            <div className="divide-y divide-border-base py-1">
+              {items.map((item) => (
+                <CartItemRow
+                  key={item.id}
+                  item={item}
+                  onUpdateQuantity={updateQuantity}
+                  onRemove={removeItem}
+                  compact
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="py-10 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-subtle text-content-muted mb-3">
+                <ShoppingBag className="h-7 w-7" />
               </div>
-            </li>)}
-          </ul> : <div className="py-7 text-center"><p className="font-semibold text-content-main">Giỏ hàng đang trống</p><p className="mt-1 text-xs text-content-muted">Thử mấy món khách đang thích nè</p><div className="mt-4 grid grid-cols-2 gap-3 text-left">{suggestions.map(product => <button key={product.id} onClick={() => { useCartStore.getState().addItem({ productId: product.id, title: product.name, price: product.price, originalPrice: product.compareAtPrice ?? product.originalPrice, quantity: 1, image: product.images[0] || '', sku: product.sku, stock: product.stock }); toast.success('Đã thêm vào giỏ.'); }} className="overflow-hidden rounded border border-border-base text-xs"><img src={product.images[0]} alt={product.name} className="aspect-square w-full object-cover" /><span className="block p-2">{product.name}</span></button>)}</div></div>}
+              <p className="font-bold text-sm text-content-main">Giỏ hàng của bạn đang trống</p>
+              <p className="mt-1 text-xs text-content-muted">
+                Hãy khám phá các sản phẩm nổi bật của chúng tôi nhé!
+              </p>
+
+              {suggestions.length > 0 && (
+                <div className="mt-5 text-left">
+                  <p className="text-xs font-semibold text-content-main mb-2">
+                    Gợi ý dành cho bạn:
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {suggestions.map((product) => (
+                      <div
+                        key={product.id}
+                        className="rounded-theme border border-border-base bg-surface-subtle/50 p-2 text-xs flex flex-col justify-between"
+                      >
+                        <img
+                          src={product.images[0] || '/placeholder.png'}
+                          alt={product.name}
+                          className="aspect-square w-full rounded object-cover mb-1.5"
+                        />
+                        <p className="line-clamp-1 font-medium text-content-main">
+                          {product.name}
+                        </p>
+                        <p className="font-bold text-primary mt-0.5">
+                          {formatCurrencyVND(product.price)}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => handleAddSuggestion(product)}
+                          className="mt-2 w-full rounded bg-surface-card border border-border-base py-1 text-[11px] font-semibold text-content-main hover:bg-primary hover:text-white transition-colors"
+                        >
+                          + Thêm
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Integrated Coupon Section in Drawer */}
+          {items.length > 0 && (
+            <div className="py-4">
+              <CartCouponSection
+                subtotal={subtotal}
+                shippingFee={shippingFee}
+                compact
+              />
+            </div>
+          )}
         </div>
 
-        {items.length > 0 && <footer className="space-y-3 border-t border-border-base p-5">
-          <div className="flex gap-2"><input value={couponInput} onChange={e => setCouponInput(e.target.value)} placeholder="Nhập mã giảm giá" aria-label="Mã giảm giá" className="min-w-0 flex-1 rounded border border-border-base bg-surface-subtle px-3 py-2 text-sm" /><button disabled={couponBusy} onClick={applyCoupon} className="rounded border border-primary px-3 text-sm font-semibold text-primary disabled:opacity-50">{couponBusy ? 'Đang kiểm tra' : 'Áp dụng'}</button></div>
-          {couponMessage && <p role="status" className="text-xs text-content-muted">{couponMessage}</p>}
-          <div className="space-y-1 text-sm"><div className="flex justify-between text-content-muted"><span>Tạm tính</span><span>{formatCurrencyVND(subtotal)}</span></div>{couponDiscount > 0 && <div className="flex justify-between text-status-success"><span>Giảm giá</span><span>-{formatCurrencyVND(couponDiscount)}</span></div>}<div className="flex justify-between text-content-muted"><span>Vận chuyển</span><span>{shippingFee ? formatCurrencyVND(shippingFee) : 'Miễn phí'}</span></div><div className="flex justify-between border-t border-border-base pt-2 font-bold text-content-main"><span>Tổng cộng</span><span>{formatCurrencyVND(Math.max(0, subtotal + shippingFee - couponDiscount))}</span></div></div>
-          <button onClick={goToCheckout} className="w-full rounded-theme bg-primary py-3 text-sm font-bold text-white hover:bg-primary-hover">Tiến hành thanh toán</button>
-          <Link to="/catalog" onClick={closeCart} className="block text-center text-xs text-content-muted hover:text-primary">Tiếp tục mua sắm</Link>
-        </footer>}
+        {/* Footer Summary & CTAs */}
+        {items.length > 0 && (
+          <footer className="space-y-3 border-t border-border-base p-5 bg-surface-card">
+            {/* Financial Breakdown */}
+            <div className="space-y-1.5 text-xs text-content-muted">
+              <div className="flex justify-between">
+                <span>Tạm tính</span>
+                <span className="font-semibold text-content-main">
+                  {formatCurrencyVND(subtotal)}
+                </span>
+              </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-status-success font-medium">
+                  <span>Voucher giảm giá</span>
+                  <span>-{formatCurrencyVND(couponDiscount)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>Phí vận chuyển</span>
+                <span className="font-semibold text-content-main">
+                  {shippingFee === 0 ? (
+                    <span className="text-status-success">Miễn phí</span>
+                  ) : (
+                    formatCurrencyVND(shippingFee)
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-border-base pt-2 text-sm font-bold text-content-main">
+                <span>Tổng cộng</span>
+                <span className="text-base text-primary">
+                  {formatCurrencyVND(Math.max(0, subtotal + shippingFee - couponDiscount))}
+                </span>
+              </div>
+            </div>
+
+            {/* CTAs */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={handleGoToCheckout}
+                className="flex w-full items-center justify-center gap-2 rounded-theme bg-primary py-3 text-xs sm:text-sm font-bold text-white hover:bg-primary-hover shadow-xs transition-colors"
+              >
+                <span>Tiến hành thanh toán</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleGoToCart}
+                className="w-full rounded-theme border border-border-base py-2.5 text-xs font-semibold text-content-main hover:bg-surface-subtle transition-colors"
+              >
+                Xem chi tiết giỏ hàng
+              </button>
+
+              <Link
+                to="/catalog"
+                onClick={closeCart}
+                className="block text-center text-xs text-content-muted hover:text-primary transition-colors pt-1"
+              >
+                Tiếp tục mua sắm
+              </Link>
+            </div>
+          </footer>
+        )}
       </aside>
     </div>
   );

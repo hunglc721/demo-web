@@ -61,14 +61,14 @@ const rolePermissions: Record<UserRole, { title: string; desc: string; access: s
   },
 };
 
-const navIcons: Record<string, React.ReactNode> = {
-  LayoutDashboard: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />,
-  Package: <Package className="w-5 h-5 flex-shrink-0" />,
-  ShoppingCart: <ShoppingCart className="w-5 h-5 flex-shrink-0" />,
-  Users: <Users className="w-5 h-5 flex-shrink-0" />,
-  Megaphone: <Megaphone className="w-5 h-5 flex-shrink-0" />,
-  Settings: <Settings className="w-5 h-5 flex-shrink-0" />,
-};
+const sellerNav = [
+  { title: 'Tổng quan', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />, id: 'dashboard' },
+  { title: 'Sản phẩm', path: '/admin/products', icon: <Package className="w-5 h-5 flex-shrink-0" />, id: 'products' },
+  { title: 'Đơn hàng', path: '/admin/orders', icon: <ShoppingCart className="w-5 h-5 flex-shrink-0" />, id: 'orders' },
+  { title: 'Khách hàng', path: '/admin/customers', icon: <Users className="w-5 h-5 flex-shrink-0" />, id: 'customers' },
+  { title: 'Marketing', path: '/admin/marketing', icon: <Megaphone className="w-5 h-5 flex-shrink-0" />, id: 'marketing' },
+  { title: 'Cài đặt', path: '/admin/settings', icon: <Settings className="w-5 h-5 flex-shrink-0" />, id: 'settings' },
+];
 
 const presetOptions: Array<{ id: ThemePreset; name: string; colorClass: string }> = [
   { id: 'emerald', name: 'Ngọc lục bảo', colorClass: 'bg-emerald-500' },
@@ -155,28 +155,27 @@ export const AdminLayout: React.FC = () => {
 
         {/* Navigation List */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
-          {defaultAppConfig.adminNav.map((item) => {
-            const icon = navIcons[item.icon] || <Package className="w-5 h-5" />;
-            return (
-              <NavLink
-                key={item.id}
-                to={item.path}
-                onClick={() => setMobileOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-theme text-sm font-medium transition-all group relative',
-                    isActive
-                      ? 'bg-primary text-white shadow-sm font-semibold'
-                      : 'text-content-muted hover:text-content-main hover:bg-surface-subtle'
-                  )
-                }
-                title={collapsed ? item.title : undefined}
-              >
-                {icon}
-                {!collapsed && <span className="truncate">{item.title}</span>}
-              </NavLink>
-            );
-          })}
+          {sellerNav.map((item) => (
+            <NavLink
+              key={item.id}
+              to={item.path}
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) => {
+                const active = isActive || (item.id === 'products' && location.pathname.startsWith('/admin/categories'));
+                return cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-theme text-sm font-medium transition-all group relative',
+                  active
+                    ? 'bg-primary text-white shadow-sm font-semibold'
+                    : 'text-content-muted hover:text-content-main hover:bg-surface-subtle'
+                );
+              }}
+              title={collapsed ? item.title : undefined}
+            >
+              {item.icon}
+              {!collapsed && <span className="truncate">{item.title}</span>}
+            </NavLink>
+          ))}
+
         </nav>
 
         {/* Sidebar Footer Controls */}
