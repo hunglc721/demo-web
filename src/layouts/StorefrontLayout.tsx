@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   ShoppingBag,
@@ -35,7 +35,10 @@ const presetOptions: Array<{ id: ThemePreset; name: string; colorClass: string }
 export const StorefrontLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [showPresetPicker, setShowPresetPicker] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
 
   const { mode, toggleMode, preset, setPreset } = useThemeStore();
   const { getTotalItems, openCart } = useCartStore();
@@ -44,9 +47,24 @@ export const StorefrontLayout: React.FC = () => {
 
   const cartCount = getTotalItems();
 
+  useEffect(() => {
+    if (isSearchExpanded) desktopSearchInputRef.current?.focus();
+  }, [isSearchExpanded]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchExpanded(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setIsSearchExpanded(false);
       navigate(`/catalog?q=${encodeURIComponent(searchQuery.trim())}`);
       setMobileMenuOpen(false);
     }
@@ -108,16 +126,50 @@ export const StorefrontLayout: React.FC = () => {
             </nav>
 
             {/* Search Input Bar (Desktop) */}
-            <form onSubmit={handleSearchSubmit} className="hidden md:flex items-center relative flex-1 max-w-xs">
-              <input
-                type="text"
-                placeholder="Tìm sản phẩm, thương hiệu..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-surface-subtle border border-border-base rounded-theme pl-9 pr-4 py-1.5 text-sm placeholder:text-content-subtle text-content-main focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
-              />
-              <Search className="w-4 h-4 text-content-muted absolute left-3 pointer-events-none" />
-            </form>
+            <div
+              ref={searchContainerRef}
+              className={cn(
+                'hidden md:block relative',
+                isSearchExpanded
+                  ? 'fixed z-[60] left-1/2 top-24 -translate-x-1/2 w-[min(36rem,calc(100vw-2rem))]'
+                  : 'flex-shrink-0'
+              )}
+            >
+              {!isSearchExpanded ? (
+                <button
+                  type="button"
+                  onClick={() => setIsSearchExpanded(true)}
+                  className="h-10 w-11 flex items-center justify-center rounded-theme border border-border-base bg-surface-subtle text-content-muted hover:text-primary hover:border-primary transition-colors"
+                  aria-label="Mở tìm kiếm sản phẩm"
+                  title="Tìm kiếm sản phẩm"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+              ) : (
+                <form onSubmit={handleSearchSubmit} className="relative">
+                  <input
+                    ref={desktopSearchInputRef}
+                    type="text"
+                    placeholder="Tìm sản phẩm, thương hiệu..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setIsSearchExpanded(false);
+                    }}
+                    className="w-full bg-surface-card border border-primary rounded-xl pl-12 pr-12 py-4 text-base placeholder:text-content-subtle text-content-main shadow-2xl focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all"
+                  />
+                  <Search className="w-5 h-5 text-primary absolute left-4 top-4 pointer-events-none" />
+                  <button
+                    type="button"
+                    onClick={() => setIsSearchExpanded(false)}
+                    className="absolute right-3 top-3 p-1.5 rounded-md text-content-muted hover:bg-surface-subtle"
+                    aria-label="Đóng tìm kiếm"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </form>
+              )}
+            </div>
 
             {/* Actions: Theme, Admin Link, Cart */}
             <div className="flex items-center gap-2 sm:gap-3">
