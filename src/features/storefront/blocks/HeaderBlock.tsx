@@ -269,14 +269,16 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
               </button>
 
               {/* Admin Portal Link */}
-              <Link
-                to="/admin/dashboard"
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-theme text-xs font-medium bg-surface-subtle hover:bg-border-base text-content-main border border-border-base transition-colors"
-                title={`Vào trang quản trị Admin (${user?.name})`}
-              >
-                <Shield className="w-3.5 h-3.5 text-primary" />
-                <span>Admin</span>
-              </Link>
+              {user?.role === 'admin' && (
+                <Link
+                  to="/admin/dashboard"
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-theme text-xs font-medium bg-surface-subtle hover:bg-border-base text-content-main border border-border-base transition-colors"
+                  title={`Vào trang quản trị Admin (${user.name})`}
+                >
+                  <Shield className="w-3.5 h-3.5 text-primary" />
+                  <span>Admin</span>
+                </Link>
+              )}
 
               {/* Cart Button with live Badge */}
               <button
@@ -327,14 +329,16 @@ export const HeaderBlock: React.FC<HeaderBlockProps> = ({ settings }) => {
                   {link.title}
                 </NavLink>
               ))}
-              <Link
-                to="/admin/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-theme text-sm font-medium text-primary hover:bg-surface-subtle flex items-center gap-2"
-              >
-                <Shield className="w-4 h-4" />
-                <span>Trang quản trị Admin</span>
-              </Link>
+              {user?.role === 'admin' && (
+                <Link
+                  to="/admin/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-theme text-sm font-medium text-primary hover:bg-surface-subtle flex items-center gap-2"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>Trang quản trị Admin</span>
+                </Link>
+              )}
             </nav>
           </div>
         )}

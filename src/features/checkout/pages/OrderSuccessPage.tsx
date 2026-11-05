@@ -18,9 +18,11 @@ import { orderService } from '@/services/api/orderService';
 import { Order } from '@/types';
 import { formatCurrencyVND } from '@/utils/formatters';
 import { toast } from '@/stores/toastStore';
+import { useAuthStore } from '@/stores/authStore';
 import { VietQRModal } from '../components/VietQRModal';
 
 export const OrderSuccessPage: React.FC = () => {
+  const { user } = useAuthStore();
   const { orderId } = useParams<{ orderId: string }>();
   const [searchParams] = useSearchParams();
   const effectiveOrderId = orderId || searchParams.get('orderId') || searchParams.get('id');
@@ -201,8 +203,7 @@ export const OrderSuccessPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. Direct Link to Admin Backoffice (MANDATORY REQUIREMENT) */}
-      <section className="rounded-theme border border-primary/25 bg-primary/5 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+      {user?.role === 'admin' && <section className="rounded-theme border border-primary/25 bg-primary/5 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
         <div className="space-y-0.5 text-center sm:text-left">
           <div className="font-bold text-sm text-content-main flex items-center justify-center sm:justify-start gap-1.5">
             <ShieldCheck className="h-4 w-4 text-primary" />
@@ -219,7 +220,7 @@ export const OrderSuccessPage: React.FC = () => {
           <span>Mở Backoffice</span>
           <ExternalLink className="h-3.5 w-3.5" />
         </Link>
-      </section>
+      </section>}
 
       {/* 3. Payment Method Section */}
       {order.paymentMethod === 'vietqr' && (

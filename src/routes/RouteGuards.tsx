@@ -18,10 +18,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If a role is required and user is not admin or matching role
-  if (requiredRole && user?.role !== 'admin' && user?.role !== requiredRole) {
-    // In UI_ONLY demo mode, we allow exploration with a warning, or redirect to login
-    return <>{children}</>;
+  if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

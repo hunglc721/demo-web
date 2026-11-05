@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, ArrowRight, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { defaultAppConfig } from '@/config/appConfig';
+import { useAuthStore } from '@/stores/authStore';
 
 export interface HeroSlide {
   tag?: string;
@@ -30,9 +31,10 @@ export interface HeroBannerBlockProps {
 
 const DEFAULT_HERO_IMAGE =
   'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2000&q=85';
-const AUTOPLAY_INTERVAL_MS = 6000;
+const AUTOPLAY_INTERVAL_MS = 1500;
 
 export const HeroBannerBlock: React.FC<HeroBannerBlockProps> = ({ settings }) => {
+  const { user } = useAuthStore();
   const configuredSlides = (settings?.slides || []).filter((slide) => slide.backgroundImage?.trim());
   const slides: HeroSlide[] = configuredSlides.length > 0
     ? configuredSlides
@@ -141,7 +143,8 @@ export const HeroBannerBlock: React.FC<HeroBannerBlockProps> = ({ settings }) =>
               </Link>
             )}
 
-            {active.secondaryCtaLink && (
+            {active.secondaryCtaLink &&
+              (!active.secondaryCtaLink.startsWith('/admin') || user?.role === 'admin') && (
               <Link
                 to={active.secondaryCtaLink}
                 className="inline-flex items-center gap-2 rounded-theme border border-white/30 bg-slate-950/20 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/10 sm:text-base"

@@ -56,7 +56,7 @@ function loadPersistedAuth(): PersistedAuthSnapshot {
         const parsed = JSON.parse(stored) as Partial<PersistedAuthSnapshot>;
         if (parsed && typeof parsed === 'object') {
           return {
-            user: parsed.user !== undefined ? parsed.user : defaultAdminUser,
+            user: parsed.user !== undefined ? parsed.user : null,
             isAuthenticated:
               typeof parsed.isAuthenticated === 'boolean'
                 ? parsed.isAuthenticated
@@ -68,7 +68,7 @@ function loadPersistedAuth(): PersistedAuthSnapshot {
   } catch {
     // Malformed JSON or storage security restriction fallback
   }
-  return { user: defaultAdminUser, isAuthenticated: true };
+  return { user: null, isAuthenticated: false };
 }
 
 function savePersistedAuth(snapshot: PersistedAuthSnapshot): void {
