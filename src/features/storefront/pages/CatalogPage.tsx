@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { SlidersHorizontal, Filter, Home, ChevronRight } from 'lucide-react';
 import { productService } from '@/services/api/productService';
@@ -124,7 +124,33 @@ export const CatalogPage: React.FC = () => {
     setSearchParams(next);
   };
 
-  const handleFilterChange = (updates: Partial<CatalogFilterState>) => {
+  // Reference to catalog header for smooth scrolling
+  const catalogHeaderRef = useRef<HTMLDivElement>(null);
+
+  const scrollToTop = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    // Delay slightly to allow React DOM commits and mobile Drawer scroll unlock
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (catalogHeaderRef.current) {
+          const headerTop =
+            catalogHeaderRef.current.getBoundingClientRect().top + (window.scrollY || window.pageYOffset || 0);
+          const targetTop = Math.max(0, headerTop - 80);
+          window.scrollTo({
+            top: targetTop,
+            behavior: 'smooth',
+          });
+        } else {
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+          });
+        }
+      }, 50);
+    });
+  }, []);
+
+  const handleFilterChange = (updates: Partial<CatalogFilterState>, shouldScroll = true) => {
     const paramUpdates: Record<string, string | null | undefined> = {};
     if ('category' in updates) paramUpdates.category = updates.category;
     if ('minPrice' in updates)
@@ -138,10 +164,14 @@ export const CatalogPage: React.FC = () => {
     if ('tag' in updates) paramUpdates.tag = updates.tag;
 
     updateParams(paramUpdates);
+    if (shouldScroll) {
+      scrollToTop();
+    }
   };
 
   const handleResetFilters = () => {
     setSearchParams(new URLSearchParams());
+    scrollToTop();
   };
 
   // Filter and sort items
@@ -252,7 +282,10 @@ export const CatalogPage: React.FC = () => {
       </nav>
 
       {/* PLP Header & Controls Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-base pb-6">
+      <div
+        ref={catalogHeaderRef}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-base pb-6"
+      >
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-content-main tracking-tight">
             {query
@@ -288,7 +321,10 @@ export const CatalogPage: React.FC = () => {
             <span className="hidden sm:inline font-medium">Sắp xếp:</span>
             <select
               value={sort}
-              onChange={(e) => updateParams({ sort: e.target.value })}
+              onChange={(e) => {
+                updateParams({ sort: e.target.value });
+                scrollToTop();
+              }}
               className="bg-surface-card border border-border-base rounded-theme px-3 py-2 text-xs font-medium text-content-main focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
               <option value="popular">Phổ biến nhất (Bán chạy)</option>
@@ -306,12 +342,30 @@ export const CatalogPage: React.FC = () => {
         searchQuery={query}
         filters={filters}
         categories={categories}
-        onRemoveSearch={() => updateParams({ q: null })}
-        onRemoveCategory={() => updateParams({ category: null })}
-        onRemovePrice={() => updateParams({ minPrice: null, maxPrice: null })}
-        onRemoveInStock={() => updateParams({ inStock: null })}
-        onRemoveRating={() => updateParams({ minRating: null })}
-        onRemoveTag={() => updateParams({ tag: null })}
+        onRemoveSearch={() => {
+          updateParams({ q: null });
+          scrollToTop();
+        }}
+        onRemoveCategory={() => {
+          updateParams({ category: null });
+          scrollToTop();
+        }}
+        onRemovePrice={() => {
+          updateParams({ minPrice: null, maxPrice: null });
+          scrollToTop();
+        }}
+        onRemoveInStock={() => {
+          updateParams({ inStock: null });
+          scrollToTop();
+        }}
+        onRemoveRating={() => {
+          updateParams({ minRating: null });
+          scrollToTop();
+        }}
+        onRemoveTag={() => {
+          updateParams({ tag: null });
+          scrollToTop();
+        }}
         onClearAll={handleResetFilters}
       />
 
@@ -366,8 +420,14 @@ export const CatalogPage: React.FC = () => {
                 totalItems={totalItems}
                 pageSize={pageSize}
                 pageSizeOptions={[12, 24, 48]}
-                onPageChange={(p) => updateParams({ page: String(p) })}
-                onPageSizeChange={(size) => updateParams({ pageSize: String(size), page: '1' })}
+                onPageChange={(p) => {
+                  updateParams({ page: String(p) });
+                  scrollToTop();
+                }}
+                onPageSizeChange={(size) => {
+                  updateParams({ pageSize: String(size), page: '1' });
+                  scrollToTop();
+                }}
                 showTotal={true}
                 showPageSizeSelector={true}
               />
@@ -390,7 +450,7 @@ export const CatalogPage: React.FC = () => {
             categoryCounts={categoryCounts}
             filters={filters}
             onFilterChange={(u) => {
-              handleFilterChange(u);
+              handleFilterChange(u, true);
               setMobileFilterOpen(false);
             }}
             onReset={() => {

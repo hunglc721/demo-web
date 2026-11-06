@@ -100,6 +100,11 @@ export const defaultAppConfig: AppConfig = {
         { id: 'prod-list', title: 'Tất cả sản phẩm', path: '/admin/products' },
         { id: 'prod-create', title: 'Thêm mới', path: '/admin/products/new' },
         { id: 'prod-cats', title: 'Danh mục', path: '/admin/categories' },
+        { id: 'prod-categories', title: 'Danh mục sản phẩm', path: '/admin/products/categories' },
+        { id: 'prod-tags', title: 'Tag sản phẩm', path: '/admin/products/tags' },
+        { id: 'prod-inventory', title: 'Tồn kho', path: '/admin/products/inventory' },
+        { id: 'prod-reviews', title: 'Đánh giá', path: '/admin/products/reviews' },
+        { id: 'prod-custom-fields', title: 'Trường tuỳ chỉnh', path: '/admin/products/custom-fields' },
       ],
     },
     {
@@ -108,6 +113,13 @@ export const defaultAppConfig: AppConfig = {
       path: '/admin/orders',
       icon: 'ShoppingCart',
       badgeKey: 'pendingOrders',
+      children: [
+        { id: 'order-list', title: 'Tất cả đơn hàng', path: '/admin/orders' },
+        { id: 'order-abandoned', title: 'Chưa hoàn tất', path: '/admin/orders/abandoned' },
+        { id: 'order-shipping-slips', title: 'Phiếu giao hàng', path: '/admin/orders/shipping-slips' },
+        { id: 'order-tags', title: 'Tag đơn hàng', path: '/admin/orders/tags' },
+        { id: 'order-custom-fields', title: 'Trường tuỳ chỉnh', path: '/admin/orders/custom-fields' },
+      ],
     },
     {
       id: 'customers',

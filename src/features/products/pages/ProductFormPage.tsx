@@ -14,12 +14,17 @@ import {
   FileText,
   Trash2,
   Check,
+  Percent,
+  FolderPlus,
+  X,
 } from 'lucide-react';
+import { cn } from '@/utils/cn';
 import { productService } from '@/services/api/productService';
 import { Category, ProductVariant, ProductOption } from '@/types';
 import { compressImage } from '@/services/imageCompressor';
 import { toast } from '@/stores/toastStore';
-import { slugify } from '@/utils/formatters';
+import { slugify, formatCurrencyVND } from '@/utils/formatters';
+import { STORAGE_KEYS } from '@/services/storage/storageKeys';
 import { VariantMatrixBuilder } from '../components/VariantMatrixBuilder';
 import { Switch } from '@/core/components/Switch';
 
@@ -80,6 +85,11 @@ export const ProductFormPage: React.FC = () => {
   const [images, setImages] = useState<string[]>([]);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [quickCategoryModalOpen, setQuickCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategorySlug, setNewCategorySlug] = useState('');
+
   const [options, setOptions] = useState<ProductOption[]>([
     { name: 'Kích cỡ', values: ['S', 'M', 'L'] },
     { name: 'Màu sắc', values: ['Đen', 'Trắng'] },
@@ -116,8 +126,14 @@ export const ProductFormPage: React.FC = () => {
 
   const watchedName = watch('name');
   const watchedPrice = watch('price');
+  const watchedCompareAtPrice = watch('compareAtPrice');
   const watchedStock = watch('stock');
   const watchedSku = watch('sku');
+
+  const discountPct =
+    watchedCompareAtPrice && watchedPrice && watchedCompareAtPrice > watchedPrice
+      ? Math.round(((watchedCompareAtPrice - watchedPrice) / watchedCompareAtPrice) * 100)
+      : 0;
 
   // Load Categories & Product Data
   useEffect(() => {
@@ -180,16 +196,14 @@ export const ProductFormPage: React.FC = () => {
     }
   };
 
-  // Image File Upload with Canvas Downscaler
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
+  // Image File Upload with Canvas Downscaler & Drag and Drop
+  const processFiles = async (fileList: FileList | File[]) => {
+    if (!fileList || fileList.length === 0) return;
     setIsCompressing(true);
     try {
       const compressedUrls: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
         const compressedBase64 = await compressImage(file, {
           maxWidth: 800,
           maxHeight: 800,
@@ -204,7 +218,90 @@ export const ProductFormPage: React.FC = () => {
       toast.error('Lỗi khi nén ảnh tải lên.');
     } finally {
       setIsCompressing(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      await processFiles(e.target.files);
       e.target.value = '';
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await processFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleLoadDemoImages = () => {
+    const demoPhotos = [
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600',
+      'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=600',
+      'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600',
+    ];
+    setImages((prev) => [...prev, ...demoPhotos]);
+    toast.success('Đã nạp 3 ảnh sản phẩm mẫu thành công!');
+  };
+
+  const handleAddPresetOption = (name: string, values: string[]) => {
+    setOptions((prev) => {
+      const existingIdx = prev.findIndex((o) => o.name.toLowerCase() === name.toLowerCase());
+      if (existingIdx >= 0) {
+        const merged = Array.from(new Set([...prev[existingIdx].values, ...values]));
+        const updated = [...prev];
+        updated[existingIdx] = { ...updated[existingIdx], values: merged };
+        return updated;
+      }
+      return [...prev, { name, values }];
+    });
+    toast.success(`Đã thêm thuộc tính "${name}"!`);
+  };
+
+  const POPULAR_TAGS = ['Bán chạy', 'Hàng mới', 'Hot Deal', 'Cotton Compact', 'Freesize', 'Cao cấp'];
+
+  const handleAppendTag = (tagText: string) => {
+    const currentTags = watch('tags') || '';
+    const tagList = currentTags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (!tagList.includes(tagText)) {
+      const nextTags = tagList.length > 0 ? `${currentTags}, ${tagText}` : tagText;
+      setValue('tags', nextTags, { shouldValidate: true });
+    }
+  };
+
+  const handleCreateCategoryQuick = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+
+    const slug = newCategorySlug.trim() || slugify(newCategoryName);
+    const newCat: Category = {
+      id: `cat_${Date.now()}`,
+      name: newCategoryName.trim(),
+      slug,
+      description: 'Danh mục tạo nhanh từ giao diện đăng sản phẩm',
+      isActive: true,
+      displayOrder: categories.length + 1,
+    } as any;
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+      const existing: Category[] = raw ? JSON.parse(raw) : [];
+      const updated = [...existing, newCat];
+      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
+      setCategories(updated);
+      setValue('categoryId', newCat.id, { shouldValidate: true });
+      toast.success(`Đã tạo nhanh danh mục "${newCat.name}"!`);
+      setQuickCategoryModalOpen(false);
+      setNewCategoryName('');
+      setNewCategorySlug('');
+    } catch (err) {
+      console.error(err);
+      toast.error('Không thể tạo danh mục.');
     }
   };
 
@@ -405,9 +502,19 @@ export const ProductFormPage: React.FC = () => {
 
             {/* Category */}
             <div>
-              <label className="block text-xs font-semibold text-content-main mb-1">
-                Danh mục <span className="text-status-danger">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-content-main">
+                  Danh mục <span className="text-status-danger">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setQuickCategoryModalOpen(true)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                >
+                  <FolderPlus className="w-3 h-3" />
+                  <span>+ Thêm danh mục mới</span>
+                </button>
+              </div>
               <select
                 {...register('categoryId')}
                 className="w-full bg-surface-subtle border border-border-base rounded-theme px-3.5 py-2 text-xs text-content-main focus:outline-none focus:ring-2 focus:ring-primary/40"
@@ -453,7 +560,20 @@ export const ProductFormPage: React.FC = () => {
             </h3>
 
             {/* Upload Dropzone */}
-            <label className="border-2 border-dashed border-border-base hover:border-primary/50 bg-surface-subtle/50 rounded-theme p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-center">
+            <label
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              className={cn(
+                'border-2 border-dashed rounded-theme p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors text-center',
+                isDragging
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border-base hover:border-primary/50 bg-surface-subtle/50'
+              )}
+            >
               <div className="p-3 rounded-full bg-primary/10 text-primary">
                 <UploadCloud className="w-6 h-6" />
               </div>
@@ -461,7 +581,9 @@ export const ProductFormPage: React.FC = () => {
                 <p className="text-xs font-bold text-content-main">
                   {isCompressing
                     ? 'Đang nén và tối ưu hóa ảnh qua HTML5 Canvas...'
-                    : 'Nhấn để chọn ảnh hoặc kéo thả vào đây'}
+                    : isDragging
+                    ? 'Thả ảnh vào đây ngay...'
+                    : 'Nhấn để chọn ảnh hoặc kéo thả trực tiếp vào đây'}
                 </p>
                 <p className="text-[11px] text-content-muted mt-0.5">
                   Tự động tối ưu hóa kích thước &lt;800px và bảo vệ giới hạn LocalStorage
@@ -477,28 +599,40 @@ export const ProductFormPage: React.FC = () => {
               />
             </label>
 
-            {/* Direct Image URL Input */}
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Hoặc dán URL ảnh trực tiếp từ Unsplash, CDN..."
-                value={imageUrlInput}
-                onChange={(e) => setImageUrlInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddImageUrl();
-                  }
-                }}
-                className="flex-1 bg-surface-subtle border border-border-base rounded-theme px-3.5 py-1.5 text-xs text-content-main focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+            {/* Direct Image URL & Demo Photo Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex flex-1 items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Hoặc dán URL ảnh trực tiếp từ Unsplash, CDN..."
+                  value={imageUrlInput}
+                  onChange={(e) => setImageUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddImageUrl();
+                    }
+                  }}
+                  className="flex-1 bg-surface-subtle border border-border-base rounded-theme px-3.5 py-1.5 text-xs text-content-main focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddImageUrl}
+                  disabled={!imageUrlInput.trim()}
+                  className="px-3 py-1.5 rounded-theme bg-surface-subtle border border-border-base hover:bg-border-base text-xs font-semibold text-content-main disabled:opacity-40 transition-colors whitespace-nowrap"
+                >
+                  + Thêm URL
+                </button>
+              </div>
+
               <button
                 type="button"
-                onClick={handleAddImageUrl}
-                disabled={!imageUrlInput.trim()}
-                className="px-3 py-1.5 rounded-theme bg-surface-subtle border border-border-base hover:bg-border-base text-xs font-semibold text-content-main disabled:opacity-40 transition-colors"
+                onClick={handleLoadDemoImages}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-theme bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold transition-colors whitespace-nowrap"
+                title="Tự động nạp 3 ảnh sản phẩm mẫu"
               >
-                + Thêm URL
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Nạp ảnh mẫu nhanh</span>
               </button>
             </div>
 
@@ -556,6 +690,32 @@ export const ProductFormPage: React.FC = () => {
               Chọn ảnh riêng cho từng màu ở cột “Ảnh biến thể”; trang bán sẽ đổi sang ảnh đó khi khách chọn màu.
             </p>
 
+            {/* 1-Click Option Presets */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 pb-2">
+              <span className="text-[11px] font-semibold text-content-muted">Gợi ý thiết lập nhanh:</span>
+              <button
+                type="button"
+                onClick={() => handleAddPresetOption('Kích cỡ', ['S', 'M', 'L', 'XL'])}
+                className="px-2.5 py-1 rounded bg-surface-subtle border border-border-base hover:border-primary text-[11px] font-medium text-content-main transition-colors"
+              >
+                + Kích cỡ (S, M, L, XL)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddPresetOption('Màu sắc', ['Đen', 'Trắng', 'Xanh Navy', 'Be'])}
+                className="px-2.5 py-1 rounded bg-surface-subtle border border-border-base hover:border-primary text-[11px] font-medium text-content-main transition-colors"
+              >
+                + Màu sắc (Đen, Trắng, Xanh Navy, Be)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddPresetOption('Dung tích', ['50ml', '100ml', '200ml'])}
+                className="px-2.5 py-1 rounded bg-surface-subtle border border-border-base hover:border-primary text-[11px] font-medium text-content-main transition-colors"
+              >
+                + Dung tích (50ml, 100ml, 200ml)
+              </button>
+            </div>
+
             <VariantMatrixBuilder
               options={options}
               onOptionsChange={setOptions}
@@ -609,6 +769,16 @@ export const ProductFormPage: React.FC = () => {
                 </p>
               )}
             </div>
+
+            {/* Real-time Discount Calculator Badge */}
+            {discountPct > 0 && watchedCompareAtPrice && watchedPrice && (
+              <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1.5 animate-in fade-in">
+                <Percent className="w-3.5 h-3.5" />
+                <span>
+                  Tiết kiệm {discountPct}% ({formatCurrencyVND(watchedCompareAtPrice - watchedPrice)})
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -703,6 +873,21 @@ export const ProductFormPage: React.FC = () => {
               <p className="text-[11px] text-content-muted mt-1">
                 Cách nhau bằng dấu phẩy
               </p>
+
+              {/* Popular Tag Suggestions */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                <span className="text-[10px] text-content-muted font-medium">Gợi ý tag:</span>
+                {POPULAR_TAGS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => handleAppendTag(t)}
+                    className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-surface-subtle hover:bg-primary/10 hover:text-primary text-content-muted border border-border-base transition-colors"
+                  >
+                    + {t}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -726,6 +911,76 @@ export const ProductFormPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Quick Category Modal */}
+      {quickCategoryModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-surface-card border border-border-base rounded-theme shadow-2xl max-w-sm w-full p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-border-base pb-3">
+              <h3 className="font-bold text-sm text-content-main flex items-center gap-2">
+                <FolderPlus className="w-4 h-4 text-primary" />
+                <span>Thêm nhanh danh mục mới</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setQuickCategoryModalOpen(false)}
+                className="p-1 rounded text-content-muted hover:text-content-main hover:bg-surface-subtle"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-content-main mb-1">
+                  Tên danh mục <span className="text-status-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="VD: Phụ kiện thể thao"
+                  value={newCategoryName}
+                  onChange={(e) => {
+                    setNewCategoryName(e.target.value);
+                    setNewCategorySlug(slugify(e.target.value));
+                  }}
+                  required
+                  className="w-full bg-surface-subtle border border-border-base rounded-theme px-3 py-2 text-content-main focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-content-main mb-1">
+                  Mã Slug
+                </label>
+                <input
+                  type="text"
+                  placeholder="phu-kien-the-thao"
+                  value={newCategorySlug}
+                  onChange={(e) => setNewCategorySlug(e.target.value)}
+                  className="w-full bg-surface-subtle border border-border-base rounded-theme px-3 py-2 text-content-main font-mono text-[11px] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border-base">
+              <button
+                type="button"
+                onClick={() => setQuickCategoryModalOpen(false)}
+                className="px-3 py-1.5 rounded-theme border border-border-base text-xs font-semibold text-content-main hover:bg-surface-subtle"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateCategoryQuick}
+                className="px-4 py-1.5 rounded-theme bg-primary text-white text-xs font-bold hover:bg-primary-hover shadow-sm"
+              >
+                Tạo danh mục
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 };

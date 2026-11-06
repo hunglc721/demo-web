@@ -20,6 +20,16 @@ import {
   UserCheck,
   CheckCircle2,
   LogOut,
+  FolderTree,
+  Tag,
+  Boxes,
+  Star,
+  FileSpreadsheet,
+  Clock,
+  Truck,
+  Sliders,
+  Globe,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { defaultAppConfig, type ThemePreset } from '@/config/appConfig';
@@ -61,13 +71,159 @@ const rolePermissions: Record<UserRole, { title: string; desc: string; access: s
   },
 };
 
-const sellerNav = [
-  { title: 'Tổng quan', path: '/admin/dashboard', icon: <LayoutDashboard className="w-5 h-5 flex-shrink-0" />, id: 'dashboard' },
-  { title: 'Sản phẩm', path: '/admin/products', icon: <Package className="w-5 h-5 flex-shrink-0" />, id: 'products' },
-  { title: 'Đơn hàng', path: '/admin/orders', icon: <ShoppingCart className="w-5 h-5 flex-shrink-0" />, id: 'orders' },
-  { title: 'Khách hàng', path: '/admin/customers', icon: <Users className="w-5 h-5 flex-shrink-0" />, id: 'customers' },
-  { title: 'Marketing', path: '/admin/marketing', icon: <Megaphone className="w-5 h-5 flex-shrink-0" />, id: 'marketing' },
-  { title: 'Cài đặt', path: '/admin/settings', icon: <Settings className="w-5 h-5 flex-shrink-0" />, id: 'settings' },
+export interface NavItemDef {
+  id: string;
+  title: string;
+  path: string;
+  icon: React.ReactNode;
+  badge?: string;
+  isExternal?: boolean;
+  exact?: boolean;
+}
+
+export interface NavGroupDef {
+  id: string;
+  label?: string; // Group header e.g. "BÁN HÀNG", "SẢN PHẨM", "KÊNH BÁN", "QUẢN TRỊ HỆ THỐNG"
+  items: NavItemDef[];
+}
+
+export const adminNavGroups: NavGroupDef[] = [
+  {
+    id: 'overview-group',
+    items: [
+      {
+        id: 'dashboard',
+        title: 'Tổng quan',
+        path: '/admin/dashboard',
+        icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" />,
+        exact: true,
+      },
+    ],
+  },
+  {
+    id: 'sales-group',
+    label: 'Bán hàng',
+    items: [
+      {
+        id: 'orders',
+        title: 'Tất cả đơn hàng',
+        path: '/admin/orders',
+        icon: <ShoppingCart className="w-4 h-4 flex-shrink-0" />,
+        exact: true,
+      },
+      {
+        id: 'orders-abandoned',
+        title: 'Chưa hoàn tất',
+        path: '/admin/orders/abandoned',
+        icon: <Clock className="w-4 h-4 flex-shrink-0" />,
+      },
+      {
+        id: 'orders-shipping',
+        title: 'Phiếu giao hàng',
+        path: '/admin/orders/shipping-slips',
+        icon: <Truck className="w-4 h-4 flex-shrink-0" />,
+      },
+      {
+        id: 'orders-tags',
+        title: 'Tag đơn hàng',
+        path: '/admin/orders/tags',
+        icon: <Tag className="w-4 h-4 flex-shrink-0" />,
+      },
+      {
+        id: 'orders-custom-fields',
+        title: 'Trường tuỳ chỉnh',
+        path: '/admin/orders/custom-fields',
+        icon: <Sliders className="w-4 h-4 flex-shrink-0" />,
+      },
+    ],
+  },
+  {
+    id: 'products-group',
+    label: 'Sản phẩm',
+    items: [
+      {
+        id: 'products',
+        title: 'Danh sách sản phẩm',
+        path: '/admin/products',
+        icon: <Package className="w-4 h-4 flex-shrink-0" />,
+        exact: true,
+      },
+      {
+        id: 'products-categories',
+        title: 'Danh mục',
+        path: '/admin/products/categories',
+        icon: <FolderTree className="w-4 h-4 flex-shrink-0" />,
+      },
+      {
+        id: 'products-tags',
+        title: 'Tag sản phẩm',
+        path: '/admin/products/tags',
+        icon: <Tag className="w-4 h-4 flex-shrink-0" />,
+      },
+      {
+        id: 'products-inventory',
+        title: 'Tồn kho',
+        path: '/admin/products/inventory',
+        icon: <Boxes className="w-4 h-4 flex-shrink-0" />,
+      },
+      {
+        id: 'products-reviews',
+        title: 'Đánh giá',
+        path: '/admin/products/reviews',
+        icon: <Star className="w-4 h-4 flex-shrink-0" />,
+      },
+      {
+        id: 'products-custom-fields',
+        title: 'Trường tuỳ chỉnh',
+        path: '/admin/products/custom-fields',
+        icon: <FileSpreadsheet className="w-4 h-4 flex-shrink-0" />,
+      },
+    ],
+  },
+  {
+    id: 'channels-group',
+    label: 'Kênh bán',
+    items: [
+      {
+        id: 'channel-store',
+        title: 'Website bán hàng',
+        path: '/catalog',
+        icon: <Globe className="w-4 h-4 flex-shrink-0" />,
+        isExternal: true,
+      },
+      {
+        id: 'channel-checkout',
+        title: 'Trang thanh toán',
+        path: '/checkout',
+        icon: <CreditCard className="w-4 h-4 flex-shrink-0" />,
+        isExternal: true,
+      },
+    ],
+  },
+  {
+    id: 'management-group',
+    label: 'Quản trị hệ thống',
+    items: [
+      {
+        id: 'customers',
+        title: 'Khách hàng',
+        path: '/admin/customers',
+        icon: <Users className="w-4 h-4 flex-shrink-0" />,
+      },
+      {
+        id: 'marketing',
+        title: 'Khuyến mãi & Marketing',
+        path: '/admin/marketing',
+        icon: <Megaphone className="w-4 h-4 flex-shrink-0" />,
+      },
+      {
+        id: 'settings',
+        title: 'Cài đặt hệ thống',
+        path: '/admin/settings',
+        icon: <Settings className="w-4 h-4 flex-shrink-0" />,
+      },
+    ],
+  },
 ];
 
 const presetOptions: Array<{ id: ThemePreset; name: string; colorClass: string }> = [
@@ -89,11 +245,54 @@ export const AdminLayout: React.FC = () => {
   const { mode, toggleMode, preset, setPreset } = useThemeStore();
   const { user, switchRole, logout } = useAuthStore();
 
+  const isItemActive = (item: NavItemDef) => {
+    const curPath = location.pathname;
+    if (item.exact) {
+      if (item.id === 'orders') {
+        if (curPath === '/admin/orders') return true;
+        const parts = curPath.split('/').filter(Boolean);
+        if (parts.length === 3 && parts[1] === 'orders') {
+          const sub = parts[2];
+          if (!['abandoned', 'shipping-slips', 'tags', 'custom-fields'].includes(sub)) {
+            return true;
+          }
+        }
+        return false;
+      }
+      if (item.id === 'products') {
+        if (curPath === '/admin/products') return true;
+        if (curPath.startsWith('/admin/products/new')) return true;
+        if (/^\/admin\/products\/[^/]+\/edit/.test(curPath)) return true;
+        return false;
+      }
+      return curPath === item.path;
+    }
+
+    if (item.id === 'products-categories') {
+      return curPath === '/admin/products/categories' || curPath === '/admin/categories';
+    }
+
+    if (item.isExternal) {
+      return curPath === item.path;
+    }
+
+    return curPath === item.path || curPath.startsWith(`${item.path}/`);
+  };
+
   const getBreadcrumb = () => {
     const path = location.pathname;
     if (path.includes('/dashboard')) return 'Tổng quan thống kê';
+    if (path.includes('/products/categories') || path.includes('/admin/categories')) return 'Quản lý danh mục';
+    if (path.includes('/products/tags')) return 'Tag sản phẩm';
+    if (path.includes('/products/inventory')) return 'Quản lý tồn kho';
+    if (path.includes('/products/reviews')) return 'Đánh giá sản phẩm';
+    if (path.includes('/products/custom-fields')) return 'Trường tuỳ chỉnh sản phẩm';
     if (path.includes('/products/new')) return 'Thêm sản phẩm mới';
     if (path.includes('/products')) return 'Quản lý sản phẩm';
+    if (path.includes('/orders/abandoned')) return 'Đơn hàng chưa hoàn tất';
+    if (path.includes('/orders/shipping-slips')) return 'Phiếu giao hàng';
+    if (path.includes('/orders/tags')) return 'Tag đơn hàng';
+    if (path.includes('/orders/custom-fields')) return 'Trường tuỳ chỉnh đơn hàng';
     if (path.includes('/orders')) return 'Quản lý đơn hàng';
     if (path.includes('/customers')) return 'Danh sách khách hàng';
     if (path.includes('/marketing')) return 'Khuyến mãi & Marketing';
@@ -154,28 +353,66 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Navigation List */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
-          {sellerNav.map((item) => (
-            <NavLink
-              key={item.id}
-              to={item.path}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) => {
-                const active = isActive || (item.id === 'products' && location.pathname.startsWith('/admin/categories'));
-                return cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-theme text-sm font-medium transition-all group relative',
-                  active
-                    ? 'bg-primary text-white shadow-sm font-semibold'
-                    : 'text-content-muted hover:text-content-main hover:bg-surface-subtle'
-                );
-              }}
-              title={collapsed ? item.title : undefined}
-            >
-              {item.icon}
-              {!collapsed && <span className="truncate">{item.title}</span>}
-            </NavLink>
-          ))}
+        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+          {adminNavGroups.map((group) => (
+            <div key={group.id} className="space-y-1">
+              {group.label && !collapsed && (
+                <div className="px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-content-muted">
+                  {group.label}
+                </div>
+              )}
+              {group.label && collapsed && (
+                <div className="my-2 border-t border-border-base mx-2" />
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const active = isItemActive(item);
+                  if (item.isExternal) {
+                    return (
+                      <Link
+                        key={item.id}
+                        to={item.path}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-theme text-xs font-medium transition-all group relative text-content-muted hover:text-content-main hover:bg-surface-subtle',
+                          collapsed && 'justify-center px-2'
+                        )}
+                        title={collapsed ? item.title : undefined}
+                      >
+                        {item.icon}
+                        {!collapsed && (
+                          <div className="flex-1 flex items-center justify-between min-w-0">
+                            <span className="truncate">{item.title}</span>
+                            <ExternalLink className="w-3 h-3 text-content-muted group-hover:text-content-main flex-shrink-0" />
+                          </div>
+                        )}
+                      </Link>
+                    );
+                  }
 
+                  return (
+                    <NavLink
+                      key={item.id}
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-theme text-xs font-medium transition-all group relative',
+                        active
+                          ? 'bg-primary text-white shadow-sm font-semibold'
+                          : 'text-content-muted hover:text-content-main hover:bg-surface-subtle',
+                        collapsed && 'justify-center px-2'
+                      )}
+                      title={collapsed ? item.title : undefined}
+                    >
+                      {item.icon}
+                      {!collapsed && <span className="truncate">{item.title}</span>}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Sidebar Footer Controls */}

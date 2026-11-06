@@ -20,6 +20,14 @@ export const STORAGE_KEYS = {
   REVIEWS: `${STORAGE_PREFIX}:reviews:${STORAGE_VERSION}`,
   MOCK_CONFIG: `${STORAGE_PREFIX}:mock_config:${STORAGE_VERSION}`,
   META: `${STORAGE_PREFIX}:meta:${STORAGE_VERSION}`,
+
+  // New keys for seller backoffice
+  ABANDONED_ORDERS: `${STORAGE_PREFIX}:abandoned_orders:${STORAGE_VERSION}`,
+  SHIPPING_SLIPS: `${STORAGE_PREFIX}:shipping_slips:${STORAGE_VERSION}`,
+  ORDER_TAGS: `${STORAGE_PREFIX}:order_tags:${STORAGE_VERSION}`,
+  ORDER_CUSTOM_FIELDS: `${STORAGE_PREFIX}:order_custom_fields:${STORAGE_VERSION}`,
+  PRODUCT_TAGS: `${STORAGE_PREFIX}:product_tags:${STORAGE_VERSION}`,
+  PRODUCT_CUSTOM_FIELDS: `${STORAGE_PREFIX}:product_custom_fields:${STORAGE_VERSION}`,
 } as const;
 
 export type StorageKeyType = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

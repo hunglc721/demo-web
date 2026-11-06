@@ -40,6 +40,17 @@ const CouponListPage = lazy(() => import('@/features/marketing/pages/CouponListP
 const MarketingFlashSalePage = lazy(() => import('@/features/marketing/pages/MarketingFlashSalePage'));
 const SettingsPage = lazy(() => import('@/features/settings/pages/SettingsPage'));
 
+// New Lazy Admin Seller Pages
+const AbandonedOrdersPage = lazy(() => import('@/features/orders/pages/AbandonedOrdersPage'));
+const ShippingSlipsPage = lazy(() => import('@/features/orders/pages/ShippingSlipsPage'));
+const OrderTagsPage = lazy(() => import('@/features/orders/pages/OrderTagsPage'));
+const OrderCustomFieldsPage = lazy(() => import('@/features/orders/pages/OrderCustomFieldsPage'));
+
+const ProductTagsPage = lazy(() => import('@/features/products/pages/ProductTagsPage'));
+const InventoryPage = lazy(() => import('@/features/products/pages/InventoryPage'));
+const ProductReviewsPage = lazy(() => import('@/features/products/pages/ProductReviewsPage'));
+const ProductCustomFieldsPage = lazy(() => import('@/features/products/pages/ProductCustomFieldsPage'));
+
 const wrap = (Component: React.ComponentType) => (
   <Suspense fallback={<PageLoader />}>
     <Component />
@@ -89,12 +100,27 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/admin/dashboard" replace /> },
       { path: 'dashboard', element: wrap(DashboardPage) },
+
+      // Bán hàng (Orders)
+      { path: 'orders', element: wrap(OrderListPage) },
+      { path: 'orders/:id', element: wrap(OrderDetailPage) },
+      { path: 'orders/abandoned', element: wrap(AbandonedOrdersPage) },
+      { path: 'orders/shipping-slips', element: wrap(ShippingSlipsPage) },
+      { path: 'orders/tags', element: wrap(OrderTagsPage) },
+      { path: 'orders/custom-fields', element: wrap(OrderCustomFieldsPage) },
+
+      // Sản phẩm (Products)
       { path: 'products', element: wrap(ProductListPage) },
       { path: 'products/new', element: wrap(ProductFormPage) },
       { path: 'products/:id/edit', element: wrap(ProductFormPage) },
       { path: 'categories', element: wrap(CategoryListPage) },
-      { path: 'orders', element: wrap(OrderListPage) },
-      { path: 'orders/:id', element: wrap(OrderDetailPage) },
+      { path: 'products/categories', element: wrap(CategoryListPage) },
+      { path: 'products/tags', element: wrap(ProductTagsPage) },
+      { path: 'products/inventory', element: wrap(InventoryPage) },
+      { path: 'products/reviews', element: wrap(ProductReviewsPage) },
+      { path: 'products/custom-fields', element: wrap(ProductCustomFieldsPage) },
+
+      // Khách hàng & Quản trị
       { path: 'customers', element: wrap(CustomerListPage) },
       { path: 'customers/:id', element: wrap(CustomerDetailPage) },
       { path: 'marketing', element: wrap(MarketingPage) },

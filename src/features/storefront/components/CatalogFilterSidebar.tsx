@@ -58,8 +58,15 @@ export const CatalogFilterSidebar: React.FC<CatalogFilterSidebarProps> = ({
 
   const handleApplyCustomPrice = (e: React.FormEvent) => {
     e.preventDefault();
-    const minVal = customMin.trim() ? Math.max(0, parseInt(customMin, 10)) : undefined;
-    const maxVal = customMax.trim() ? Math.max(0, parseInt(customMax, 10)) : undefined;
+    let minVal = customMin.trim() ? Math.max(0, parseInt(customMin, 10)) : undefined;
+    let maxVal = customMax.trim() ? Math.max(0, parseInt(customMax, 10)) : undefined;
+    if (minVal !== undefined && maxVal !== undefined && minVal > maxVal) {
+      const temp = minVal;
+      minVal = maxVal;
+      maxVal = temp;
+      setCustomMin(String(minVal));
+      setCustomMax(String(maxVal));
+    }
     onFilterChange({ minPrice: minVal, maxPrice: maxVal });
   };
 
@@ -161,7 +168,15 @@ export const CatalogFilterSidebar: React.FC<CatalogFilterSidebarProps> = ({
                       maxPrice: preset.max,
                     })
                   }
-                  className="rounded-full text-primary focus:ring-primary h-3.5 w-3.5"
+                  onClick={() => {
+                    if (isMatch && (preset.min !== undefined || preset.max !== undefined)) {
+                      onFilterChange({
+                        minPrice: undefined,
+                        maxPrice: undefined,
+                      });
+                    }
+                  }}
+                  className="rounded-full text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
                 />
                 <span>{preset.label}</span>
               </label>
