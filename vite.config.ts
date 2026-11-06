@@ -13,4 +13,7 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  preview: {
+    allowedHosts: ['demo-web-yb5c.onrender.com'],
+  },
 });
